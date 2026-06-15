@@ -5,26 +5,31 @@ from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("CodeRAG")
 
-# Caminho base para seus índices
-RAG_ROOT = os.path.expanduser("/dados/aider/rag/db")
+# Caminho base para seus índices - compatível com Linux e Windows
+RAG_ROOT = "/dados/aider/rag/db"
+
+def _discover_project_name(project_name: str = None) -> str:
+    """Se o Aider não passar o nome do projeto, descobrimos pelo diretório atual."""
+    if project_name and project_name.strip():
+        return project_name
+    # Pega o nome da pasta onde o usuário abriu o terminal
+    return os.path.basename(os.getcwd())
 
 @mcp.tool()
-def search_project_memory(project_name: str, query: str) -> str:
+def search_project_memory(query: str, project_name: str = "") -> str:
     """
-    Busca na memória indexada de um projeto específico.
-    Use isso para encontrar onde funções ou lógicas estão implementadas.
+    Busca na memória indexada do projeto. Use para encontrar onde funções, 
+    regras, constantes ou lógicas de arquivos antigos/bundles estão implementadas.
     """
-    index_file = os.path.join(RAG_ROOT, project_name, "index.txt")
+    proj = _discover_project_name(project_name)
+    index_file = os.path.join(RAG_ROOT, proj, "index.txt")
     
     if not os.path.exists(index_file):
-        return f"Projeto '{project_name}' ainda não foi indexado. Rode o script de indexação."
+        return f"O projeto '{proj}' ainda não foi indexado no RAG. Rode: brain-index <caminho> {proj}"
 
-    # Leitura simples do índice (pode ser melhorado com vetores depois)
-    with open(index_file, 'r') as f:
+    with open(index_file, 'r', encoding='utf-8', errors='ignore') as f:
         content = f.read()
     
-    # Busca textual simples (fallback até implementarmos vetores)
-    # Em uma versão V2, aqui entraria a busca por similaridade de cosseno
     lines = content.split('\n')
     results = []
     for line in lines:
@@ -32,21 +37,25 @@ def search_project_memory(project_name: str, query: str) -> str:
             results.append(line)
             
     if not results:
-        return f"Nada encontrado sobre '{query}' no projeto '{project_name}'."
+        return f"Nada encontrado sobre '{query}' na memória do projeto '{proj}'."
     
-    return "\n".join(results[:10]) # Retorna top 10
+    # Retorna as primeiras 30 linhas para dar um contexto melhor pro Aider
+    return f"### Resultados na memória do projeto '{proj}':\n" + "\n".join(results[:30])
 
 @mcp.tool()
-def get_project_map(project_name: str) -> str:
+def get_project_map(project_name: str = "") -> str:
     """
-    Retorna o mapa de arquitetura do projeto (arquivo summary.md).
-    Isso dá contexto global sem ler todo o código.
+    Retorna a lista completa de caminhos de arquivos mapeados na estrutura do projeto.
+    Útil para a IA entender o esqueleto global sem ler o código.
     """
-    map_file = os.path.join(RAG_ROOT, project_name, "summary.md")
+    proj = _discover_project_name(project_name)
+    map_file = os.path.join(RAG_ROOT, proj, "file_list.txt") # Ajustado de summary.md para file_list.txt
+    
     if os.path.exists(map_file):
-        with open(map_file, 'r') as f:
-            return f.read()
-    return "Mapa do projeto não encontrado."
+        with open(map_file, 'r', encoding='utf-8', errors='ignore') as f:
+            return f"### Estrutura de Arquivos de '{proj}':\n" + f.read()
+            
+    return f"Mapa da estrutura do projeto '{proj}' não encontrado em {map_file}."
 
 if __name__ == "__main__":
-    mcp.run()   
+    mcp.run()

@@ -5,7 +5,8 @@ aider_env.sh
 venv/
 .venv/
 
+rag/db/
+
 # Ignorar arquivos de log temporários do Aider que possam surgir nos testes
 .aider/
-study-output.txt
-repomix-output.txt
+bundle-output.txt

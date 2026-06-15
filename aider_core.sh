@@ -29,8 +29,10 @@ agent() {
     
     # Lista de nomes prováveis que você usa/usou para o output do bundle
     if [ -f "./bundle-output.txt" ]; then
-        echo "📦 Bundle detectado automaticamente: ./bundle-output.txt adicionado ao contexto como read-only."
-        EXTRA_FLAGS+=(--read "./bundle-output.txt")
+        echo "📦 Bundle detectado automaticamente: ./bundle-output.txt."
+        echo "Adicione seu bundle-output.txt ao RAG com brain-index para indexar o conteúdo do bundle no RAG."
+        echo "fora do modo aider, rode no terminal: brain-index /[caminho-do-projeto]/bundle-output.txt [nome-do-projeto]"
+        #EXTRA_FLAGS+=(--read "./bundle-output.txt")
     fi
     # ----------------------------------------------
 
