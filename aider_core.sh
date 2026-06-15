@@ -10,6 +10,7 @@ BASE_SKILLS=(
 )
 
 # Função Principal (Agent)
+# Função Principal (Agent)
 agent() {
     local MODELO_DEFAULT="o3-mini"
     local MODELO=""
@@ -23,7 +24,18 @@ agent() {
         shift
     fi
 
-    echo "🤖 Iniciando Agent com modelo: $MODELO"
+    # --- DETECÇÃO AUTOMÁTICA DE BUNDLE NA RAIZ ---
+    local EXTRA_FLAGS=()
+    
+    # Lista de nomes prováveis que você usa/usou para o output do bundle
+    if [ -f "./bundle-output.txt" ]; then
+        echo "📦 Bundle detectado automaticamente: ./bundle-output.txt adicionado ao contexto como read-only."
+        EXTRA_FLAGS+=(--read "./bundle-output.txt")
+    fi
+    # ----------------------------------------------
+
+    echo "🌱 Modo Econômico"
+    echo "🤖 Iniciado com modelo: $MODELO"
 
     # Execução dinâmica baseada nas variáveis do ambiente ativo
     OPENAI_API_KEY="$MINHA_CHAVE_API" \
@@ -35,30 +47,10 @@ agent() {
                   --input-history-file ".aider/.aider.input.history" \
                   --chat-history-file ".aider/.aider.chat.history.md" \
                   --llm-history-file ".aider/.aider.llm.history" \
-                  #--aiderignore "$AIDER_GLOBAL_DIR/ignores/.aiignore" \
+                  --aiderignore "$AIDER_GLOBAL_DIR/ignores/.aiignore" \
+                  "${EXTRA_FLAGS[@]}" \
                   "$@"
 }
-
-# Modo Ask Ultra Econômico (Aplica a Allowlist/Ignorelist estrita para poupar tokens)
-agent-eco() {
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
-
-    echo "🌱 Modo Econômico Ativado: Filtrando contexto agressivamente..."
-
-    # Mantemos as habilidades base na memória
-    local SKILLS=(
-        "${BASE_SKILLS[@]}"
-    )
-
-    # Chamamos o agente injetando o seu arquivo .aiignore restritivo
-    agent "$modelo" \
-        --read "${SKILLS[@]}" \
-        --aiderignore "$AIDER_GLOBAL_DIR/ignores/.aiignore" \
-        --chat-mode ask \
-        "$@"
-}
-
 
 # Modo Plan (Architect)
 plan() {
@@ -174,31 +166,22 @@ study() {
     agent "$modelo" --read "${BASE_SKILLS[@]}" --chat-mode ask --no-git "$@"
 }
 
-# Utilitário de Contexto
-context() {
-    local OUTPUT_FILE="${1:-study-output.txt}"
+# Empacotador de Contexto para IA (Unificado e protegido pelo .aiignore global)
+bundle() {
+    local OUTPUT_FILE="${1:-bundle-output.txt}"
 
-    echo "🚀 Compactando projeto (Foco total na pasta src) -> Gerando: $OUTPUT_FILE..."
-    
-    repomix --include "src/**" \
-            --ignore "node_modules/**,dist/**,.git/**,*.png,*.jpg,*.svg,package-lock.json" \
-            --output "$OUTPUT_FILE"
-    
-    echo "✅ Concluído! O arquivo '$OUTPUT_FILE' foi gerado com sucesso na raiz do seu projeto."
-}
-
-contextOLD() {
-    echo "🚀 Puxando Filtros Globais (.aiignore)"
-    
+    echo "🚀 Puxando Filtros Globais (.aiignore)..."
+    # Copia o seu ignore global para a raiz do projeto atual como o Repomix espera
     cp "$AIDER_GLOBAL_DIR/ignores/.aiignore" ./.repomixignore 2>/dev/null
     
-    echo "📦 Rodando compactação do projeto..."
-    repomix
+    echo "📦 Rodando compactação do projeto -> Gerando: $OUTPUT_FILE..."
+    # Executa o repomix forçando a saída para o arquivo desejado
+    repomix --output "$OUTPUT_FILE"
     
     echo "🧹 Limpando arquivos temporários..."
     rm -f ./.repomixignore
     
-    echo "✅ Concluído! O arquivo 'repomix-output.txt' foi gerado com sucesso."
+    echo "✅ Concluído! O arquivo '$OUTPUT_FILE' foi gerado com sucesso na raiz do seu projeto."
 }
 
 # Indexador RAG do Cérebro
