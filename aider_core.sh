@@ -39,7 +39,7 @@ agent() {
     echo "🤖 Iniciado com modelo: $MODELO"
 
     # Execução dinâmica baseada nas variáveis do ambiente ativo
-    OPENAI_API_KEY="$MINHA_CHAVE_API" \
+    PYTHONUTF8=1 OPENAI_API_KEY="$MINHA_CHAVE_API" \
     command aider --config "$AIDER_GLOBAL_DIR/$AIDER_CONFIG_FILE" \
                   --openai-api-base "$MEU_PROVEDOR_URL" \
                   --model "openai/$MODELO" \
