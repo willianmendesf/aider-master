@@ -245,7 +245,9 @@ draft-rules() {
     # e também evita que o script agent() carregue as regras antigas como leitura.
     rm -f .project-rules.md
 
-    agent "$modelo" "${SKILLS[@]}" --message "Use o arquivo .aider-draft-context.txt fornecido para entender o padrão do projeto. Ele contém a árvore de pastas e uma amostra do código-fonte. CRIE o arquivo .project-rules.md na raiz DE IMEDIATO. NUNCA faça perguntas." "$@"
+    # Passamos o .project-rules.md como argumento FINAL para que o Aider adicione o arquivo 
+    # ao chat de forma editável e crie-o automaticamente, evitando o loop de "file not found".
+    agent "$modelo" "${SKILLS[@]}" --message "Use o arquivo .aider-draft-context.txt fornecido para entender o padrão do projeto. Ele contém a árvore de pastas e uma amostra do código-fonte. CRIE o arquivo .project-rules.md na raiz DE IMEDIATO. NUNCA faça perguntas." .project-rules.md "$@"
     
     # Limpa os arquivos temporários depois
     rm -f .aider-draft-context.txt .aider-draft-context-full.txt
