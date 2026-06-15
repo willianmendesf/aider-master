@@ -1,0 +1,11 @@
+# Ignorar credenciais e chaves sensíveis
+aider_env.sh
+
+# Ignorar pastas de ambiente virtual locais
+venv/
+.venv/
+
+# Ignorar arquivos de log temporários do Aider que possam surgir nos testes
+.aider/
+study-output.txt
+repomix-output.txt

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/"]
+    },
+    "code-rag": {
+      "command": "/dados/aider/venv/bin/python",
+      "args": ["/dados/aider/mcp/code_rag_server.py"]
+    }
+  }
+}

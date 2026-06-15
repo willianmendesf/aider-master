@@ -1,0 +1,5 @@
+# ==========================================
+# CONFIGURAÇÕES DE API
+# ==========================================
+export MINHA_CHAVE_API="SUA_CHAVE_AQUI"
+export MEU_PROVEDOR_URL="SEU_ENDPOINT_AQUI"

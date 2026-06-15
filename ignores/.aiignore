@@ -1,0 +1,1101 @@
+# IGNORELIST
+# =========================================================
+# AI SAFE IGNORE
+# Objetivo:
+# - Evitar leitura de dados sensíveis
+# - Evitar contexto inútil/lixo
+# - Reduzir custo/tokens
+# - Melhorar performance da IA
+# =========================================================
+
+# =========================================================
+# ENVINRONMENT
+# =========================================================
+/environments/**
+/environments/
+
+# =========================================================
+# GIT
+# =========================================================
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+
+# =========================================================
+# ENV / SEGREDOS / TOKENS
+# =========================================================
+.env
+.env.*
+*.env
+*.secret
+*.secrets
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.csr
+*.der
+*.cer
+*.pub
+*.ovpn
+
+# Tokens
+*token*
+*secret*
+*credential*
+*credentials*
+*private*
+*apikey*
+*api_key*
+*auth*
+*session*
+*cookie*
+
+# =========================================================
+# SSH / GPG / CERTIFICADOS
+# =========================================================
+.ssh/
+gnupg/
+.gnupg/
+*.gpg
+*.asc
+
+# =========================================================
+# DATABASES
+# =========================================================
+*.db
+*.sqlite
+*.sqlite3
+*.mdb
+*.accdb
+*.sql
+*.dump
+*.bak
+
+# Dumps
+dump/
+dumps/
+backup/
+backups/
+
+# =========================================================
+# LOGS
+# =========================================================
+logs/
+log/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# =========================================================
+# CACHE
+# =========================================================
+.cache/
+.tmp/
+temp/
+tmp/
+.cache-loader/
+.eslintcache
+.stylelintcache
+.parcel-cache/
+.turbo/
+.sass-cache/
+.cache
+*.cache
+
+# =========================================================
+# BUILD / DIST / GENERATED
+# =========================================================
+dist/
+build/
+out/
+release/
+debug/
+target/
+.generated/
+generated/
+coverage/
+storybook-static/
+.next/
+.nuxt/
+.svelte-kit/
+.vercel/
+.netlify/
+
+# =========================================================
+# NODE
+# =========================================================
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+.yarn-cache/
+.yarnrc*
+.pnp.*
+
+# Package locks opcionais
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# =========================================================
+# PYTHON
+# =========================================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.tox/
+.nox/
+venv/
+.venv/
+env/
+ENV/
+pip-wheel-metadata/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# =========================================================
+# JAVA / JVM
+# =========================================================
+.gradle/
+.mvn/
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# =========================================================
+# GO
+# =========================================================
+bin/
+pkg/
+
+# =========================================================
+# RUST
+# =========================================================
+target/
+Cargo.lock
+
+# =========================================================
+# PHP
+# =========================================================
+vendor/
+
+# =========================================================
+# RUBY
+# =========================================================
+.bundle/
+vendor/bundle/
+
+# =========================================================
+# DOTNET
+# =========================================================
+bin/
+obj/
+*.user
+*.suo
+
+# =========================================================
+# C / C++ / BUILD SYSTEMS
+# =========================================================
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+Makefile
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+
+# =========================================================
+# MOBILE
+# =========================================================
+
+# Android
+.gradle/
+local.properties
+*.keystore
+*.jks
+captures/
+
+# iOS
+DerivedData/
+*.ipa
+*.xcworkspace
+*.xcuserdata
+*.mobileprovision
+
+# Flutter
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool/
+
+# =========================================================
+# IDE / EDITOR
+# =========================================================
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*.kate-swp
+*.orig
+
+# JetBrains
+.intellij/
+
+# VS
+.vs/
+
+# Cursor
+.cursor/
+.cursor-cache/
+
+# Windsurf
+.windsurf/
+
+# Trae
+.trae/
+trae/
+
+# =========================================================
+# AI / MCP / AGENTS
+# =========================================================
+.claude/
+.claude-code/
+.cursor/
+.roo/
+.aider/
+.continue/
+copilot/
+mcp/
+agents/
+agent-memory/
+memory/
+memories/
+
+# Contextos perigosos
+prompts/private/
+prompts/internal/
+instructions/private/
+
+# =========================================================
+# CLOUD / DEVOPS
+# =========================================================
+terraform.tfstate
+terraform.tfstate.*
+.terraform/
+.aws/
+.azure/
+.gcloud/
+kubeconfig
+.kube/
+
+# Docker
+docker-data/
+volumes/
+
+# =========================================================
+# TESTES / REPORTS
+# =========================================================
+coverage/
+reports/
+test-results/
+playwright-report/
+allure-results/
+junit.xml
+
+# =========================================================
+# MÍDIA PESADA
+# =========================================================
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.psd
+*.ai
+*.sketch
+*.fig
+*.blend
+
+# =========================================================
+# ARQUIVOS GRANDES / BINÁRIOS
+# =========================================================
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+*.iso
+*.dmg
+*.bin
+
+# =========================================================
+# PDFs / DOCS PRIVADOS
+# =========================================================
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+# =========================================================
+# EXPORTS / DATASETS
+# =========================================================
+data/
+datasets/
+exports/
+imports/
+csv/
+json/
+xml/
+seed/
+fixtures/
+
+*.csv
+*.ndjson
+*.parquet
+
+# =========================================================
+# TELEMETRIA / ANALYTICS
+# =========================================================
+.analytics/
+telemetry/
+metrics/
+
+# =========================================================
+# MONOREPO / TURBO / NX
+# =========================================================
+.nx/
+turbo/
+.cache/turbo/
+
+# =========================================================
+# FRAMEWORKS
+# =========================================================
+
+# Next.js
+.next/
+
+# Nuxt
+.nuxt/
+
+# Astro
+.astro/
+
+# Remix
+.build/
+
+# Angular
+.angular/
+
+# Expo
+.expo/
+
+# =========================================================
+# SISTEMA OPERACIONAL
+# =========================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Linux
+*~
+
+# =========================================================
+# TEMPORÁRIOS
+# =========================================================
+*.tmp
+*.temp
+*.swp
+*.pid
+
+# =========================================================
+# BACKUPS
+# =========================================================
+*.bak
+*.backup
+*.old
+*.save
+*.orig
+
+# =========================================================
+# CI/CD
+# =========================================================
+.github/workflows/secrets*
+.gitlab-ci-secrets*
+.env.ci
+
+# =========================================================
+# CONFIGS SENSÍVEIS
+# =========================================================
+firebase-adminsdk*.json
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+
+# Stripe
+stripe*.key
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+
+# =========================================================
+# LLM / IA / EMBEDDINGS
+# =========================================================
+embeddings/
+vector-db/
+vectordb/
+chroma/
+qdrant/
+pinecone/
+weaviate/
+
+# Modelos
+models/
+checkpoints/
+*.safetensors
+*.ckpt
+*.onnx
+*.pt
+*.pth
+
+# =========================================================
+# MEMÓRIAS PRIVADAS
+# =========================================================
+notes/private/
+diary/
+journals/
+vault/
+obsidian/
+notion-export/
+
+# =========================================================
+# WHATSAPP / EXPORTS
+# =========================================================
+WhatsApp Chat*.txt
+Telegram Desktop/
+DiscordChatExporter/
+
+# =========================================================
+# SCREENSHOTS / CAPTURAS
+# =========================================================
+screenshots/
+recordings/
+captures/
+
+# =========================================================
+# CONFIGS LOCAIS
+# =========================================================
+.local/
+local/
+config.local.*
+settings.local.*
+settings.private.*
+
+# =========================================================
+# QUALQUER COISA MUITO GRANDE
+# =========================================================
+*.mp3
+*.wav
+*.flac
+*.ogg
+*.iso
+*.img
+
+# =========================================================
+# OPCIONAL:
+# Deixe APENAS o que interessa para IA:
+#
+# src/
+# app/
+# components/
+# lib/
+# services/
+# hooks/
+# prisma/schema.prisma
+# package.json
+# tsconfig.json
+# README.md
+# =========================================================# ========================================================= 
+# ALLOWLIST
+*
+!portal-corretor-susep/src/**
+!portal-corretor-susep/app/**/*
+!portal-corretor-susep/src/shared/**
+!portal-corretor-susep/src/shared/design-system/**/*
+!portal-corretor-susep/components/**/*
+!portal-corretor-susep/lib/**/*
+!portal-corretor-susep/services/**/*
+!portal-corretor-susep/hooks/**/*
+!portal-corretor-susep/prisma/**/*
+!portal-corretor-susep/package.json
+!portal-corretor-susep/tsconfig.json
+!portal-corretor-susep/README.md
+
+!DSU/dsu-wc/src/**/*
+!DSU/dsu-wc/app/**/*
+!DSU/dsu-wc/
+
+
+# IGNORELIST
+# =========================================================
+# AI SAFE IGNORE
+# Objetivo:
+# - Evitar leitura de dados sensíveis
+# - Evitar contexto inútil/lixo
+# - Reduzir custo/tokens
+# - Melhorar performance da IA
+# =========================================================
+
+./b2b-portal-app
+./b2b-visao-global-app
+./DSU
+./mol-app
+
+# =========================================================
+# ENVINRONMENT
+# =========================================================
+/environments/**
+/environments/
+
+# =========================================================
+# GIT
+# =========================================================
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+
+# =========================================================
+# ENV / SEGREDOS / TOKENS
+# =========================================================
+.env
+.env.*
+*.env
+*.secret
+*.secrets
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.csr
+*.der
+*.cer
+*.pub
+*.ovpn
+
+# Tokens
+*token*
+*secret*
+*credential*
+*credentials*
+*private*
+*apikey*
+*api_key*
+*auth*
+*session*
+*cookie*
+
+# =========================================================
+# SSH / GPG / CERTIFICADOS
+# =========================================================
+.ssh/
+gnupg/
+.gnupg/
+*.gpg
+*.asc
+
+# =========================================================
+# DATABASES
+# =========================================================
+*.db
+*.sqlite
+*.sqlite3
+*.mdb
+*.accdb
+*.sql
+*.dump
+*.bak
+
+# Dumps
+dump/
+dumps/
+backup/
+backups/
+
+# =========================================================
+# LOGS
+# =========================================================
+logs/
+log/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# =========================================================
+# CACHE
+# =========================================================
+.cache/
+.tmp/
+temp/
+tmp/
+.cache-loader/
+.eslintcache
+.stylelintcache
+.parcel-cache/
+.turbo/
+.sass-cache/
+.cache
+*.cache
+
+# =========================================================
+# BUILD / DIST / GENERATED
+# =========================================================
+dist/
+build/
+out/
+release/
+debug/
+target/
+.generated/
+generated/
+coverage/
+storybook-static/
+.next/
+.nuxt/
+.svelte-kit/
+.vercel/
+.netlify/
+
+# =========================================================
+# NODE
+# =========================================================
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+.yarn-cache/
+.yarnrc*
+.pnp.*
+
+# Package locks opcionais
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# =========================================================
+# PYTHON
+# =========================================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.tox/
+.nox/
+venv/
+.venv/
+env/
+ENV/
+pip-wheel-metadata/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# =========================================================
+# JAVA / JVM
+# =========================================================
+.gradle/
+.mvn/
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# =========================================================
+# GO
+# =========================================================
+bin/
+pkg/
+
+# =========================================================
+# RUST
+# =========================================================
+target/
+Cargo.lock
+
+# =========================================================
+# PHP
+# =========================================================
+vendor/
+
+# =========================================================
+# RUBY
+# =========================================================
+.bundle/
+vendor/bundle/
+
+# =========================================================
+# DOTNET
+# =========================================================
+bin/
+obj/
+*.user
+*.suo
+
+# =========================================================
+# C / C++ / BUILD SYSTEMS
+# =========================================================
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+Makefile
+*.o
+*.obj
+*.so
+*.dll
+*.exe
+
+# =========================================================
+# MOBILE
+# =========================================================
+
+# Android
+.gradle/
+local.properties
+*.keystore
+*.jks
+captures/
+
+# iOS
+DerivedData/
+*.ipa
+*.xcworkspace
+*.xcuserdata
+*.mobileprovision
+
+# Flutter
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool/
+
+# =========================================================
+# IDE / EDITOR
+# =========================================================
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+*.kate-swp
+*.orig
+
+# JetBrains
+.intellij/
+
+# VS
+.vs/
+
+# Cursor
+.cursor/
+.cursor-cache/
+
+# Windsurf
+.windsurf/
+
+# Trae
+.trae/
+trae/
+
+# =========================================================
+# AI / MCP / AGENTS
+# =========================================================
+.claude/
+.claude-code/
+.cursor/
+.roo/
+.aider/
+.continue/
+copilot/
+mcp/
+agents/
+agent-memory/
+memory/
+memories/
+
+# Contextos perigosos
+prompts/private/
+prompts/internal/
+instructions/private/
+
+# =========================================================
+# CLOUD / DEVOPS
+# =========================================================
+terraform.tfstate
+terraform.tfstate.*
+.terraform/
+.aws/
+.azure/
+.gcloud/
+kubeconfig
+.kube/
+
+# Docker
+docker-data/
+volumes/
+
+# =========================================================
+# TESTES / REPORTS
+# =========================================================
+coverage/
+reports/
+test-results/
+playwright-report/
+allure-results/
+junit.xml
+
+# =========================================================
+# MÍDIA PESADA
+# =========================================================
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.psd
+*.ai
+*.sketch
+*.fig
+*.blend
+
+# =========================================================
+# ARQUIVOS GRANDES / BINÁRIOS
+# =========================================================
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+*.iso
+*.dmg
+*.bin
+
+# =========================================================
+# PDFs / DOCS PRIVADOS
+# =========================================================
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+
+# =========================================================
+# EXPORTS / DATASETS
+# =========================================================
+data/
+datasets/
+exports/
+imports/
+csv/
+json/
+xml/
+seed/
+fixtures/
+
+*.csv
+*.ndjson
+*.parquet
+
+# =========================================================
+# TELEMETRIA / ANALYTICS
+# =========================================================
+.analytics/
+telemetry/
+metrics/
+
+# =========================================================
+# MONOREPO / TURBO / NX
+# =========================================================
+.nx/
+turbo/
+.cache/turbo/
+
+# =========================================================
+# FRAMEWORKS
+# =========================================================
+
+# Next.js
+.next/
+
+# Nuxt
+.nuxt/
+
+# Astro
+.astro/
+
+# Remix
+.build/
+
+# Angular
+.angular/
+
+# Expo
+.expo/
+
+# =========================================================
+# SISTEMA OPERACIONAL
+# =========================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Linux
+*~
+
+# =========================================================
+# TEMPORÁRIOS
+# =========================================================
+*.tmp
+*.temp
+*.swp
+*.pid
+
+# =========================================================
+# BACKUPS
+# =========================================================
+*.bak
+*.backup
+*.old
+*.save
+*.orig
+
+# =========================================================
+# CI/CD
+# =========================================================
+.github/workflows/secrets*
+.gitlab-ci-secrets*
+.env.ci
+
+# =========================================================
+# CONFIGS SENSÍVEIS
+# =========================================================
+firebase-adminsdk*.json
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+
+# Stripe
+stripe*.key
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
+
+# =========================================================
+# LLM / IA / EMBEDDINGS
+# =========================================================
+embeddings/
+vector-db/
+vectordb/
+chroma/
+qdrant/
+pinecone/
+weaviate/
+
+# Modelos
+models/
+checkpoints/
+*.safetensors
+*.ckpt
+*.onnx
+*.pt
+*.pth
+
+# =========================================================
+# MEMÓRIAS PRIVADAS
+# =========================================================
+notes/private/
+diary/
+journals/
+vault/
+obsidian/
+notion-export/
+
+# =========================================================
+# WHATSAPP / EXPORTS
+# =========================================================
+WhatsApp Chat*.txt
+Telegram Desktop/
+DiscordChatExporter/
+
+# =========================================================
+# SCREENSHOTS / CAPTURAS
+# =========================================================
+screenshots/
+recordings/
+captures/
+
+# =========================================================
+# CONFIGS LOCAIS
+# =========================================================
+.local/
+local/
+config.local.*
+settings.local.*
+settings.private.*
+
+# =========================================================
+# QUALQUER COISA MUITO GRANDE
+# =========================================================
+*.mp3
+*.wav
+*.flac
+*.ogg
+*.iso
+*.img
+
+# =========================================================
+# OPCIONAL:
+# Deixe APENAS o que interessa para IA:
+#
+# src/
+# app/
+# components/
+# lib/
+# services/
+# hooks/
+# prisma/schema.prisma
+# package.json
+# tsconfig.json
+# README.md
+# =========================================================
