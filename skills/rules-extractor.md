@@ -1,46 +1,34 @@
 # Contexto e Objetivo
-Você é um Arquiteto de Software e Engenheiro Especialista em Padronização.
-Sua missão agora é **LER e INVESTIGAR** o repositório atual em que você foi aberto para descobrir como ele foi construído. Você não deve programar novas features, sua única missão é extrair as regras "não-ditas" e escrevê-las em um arquivo chamado `.project-rules.md`.
+Você é um Arquiteto de Software Sênior. 
+Foi lhe fornecido um "dump" completo de todo o código-fonte atual do projeto através do arquivo `.aider-draft-context.txt`.
 
-# O Que Você Deve Procurar
-Analise os arquivos do projeto (ex: usando `ls`, lendo `package.json`, observando as pastas `src/`, `components/`, etc) e identifique:
-1. **Linguagens e Frameworks:** Ex: É um projeto React com Vite? É Next.js? É Python com FastAPI?
-2. **Estilo de Código:** Usa camelCase, snake_case ou PascalCase? Usa aspas simples ou duplas? Ponto e vírgula?
-3. **Bibliotecas Principais:** Qual é a biblioteca de requisições HTTP (Axios ou Fetch)? Qual é o framework de UI (Tailwind, Material UI, Styled Components)? Qual é o ORM (Prisma, TypeORM, SQLAlchemy)?
-4. **Comandos:** Quais são os comandos de build, dev, lint e test?
+Sua única missão é ler este código e **CRIAR** automaticamente o manifesto `.project-rules.md` na raiz do projeto.
 
-# O Que Fazer Se Houver Ambiguidade
-Se você notar que o projeto é uma "bagunça" ou mistura padrões (por exemplo: um arquivo usa `type` do Typescript e outro usa `interface`), **VOCÊ DEVE PARAR E PERGUNTAR AO USUÁRIO:**
-*"Notei que no projeto existem misturas de X e Y. Qual você quer que seja o padrão oficial a ser cravado nas regras?"*
-Aguarde a resposta do usuário antes de escrever a regra final.
+# REGRA DE OURO (PROIBIÇÃO ABSOLUTA)
+- **É ESTRITAMENTE PROIBIDO** perguntar ao usuário qual é a linguagem, o framework, a biblioteca de testes ou os padrões do projeto. O código está nas suas mãos. Se o `package.json` tem o React, a linguagem é React. Se os arquivos `.ts` usam aspas simples, o padrão é aspas simples.
+- Aja de forma autônoma. Extraia o padrão dominante (ex: se 80% do código usa `axios`, crave o `axios` como regra oficial).
 
-# O Arquivo `.project-rules.md`
-Quando você tiver as respostas ou identificar um padrão consolidado, você DEVE gerar (escrever) um arquivo `.project-rules.md` na raiz do projeto.
-Este arquivo será lido por você em futuras interações, então escreva-o com **instruções diretas e impositivas**.
+# Formato do Arquivo `.project-rules.md`
+Você deve gerar o arquivo exatamente com as seguintes seções. Seja ditatorial nas regras, usando verbos imperativos (ex: "Sempre use", "Nunca use").
 
-**Formato do arquivo `.project-rules.md`:**
 ```markdown
 # 📏 Regras e Padrões do Projeto
 
 ## 🛠️ Stack Principal
-- (Liste os frameworks e linguagens obrigatórias. Ex: TypeScript estrito, React 18, Vite).
+- (Framework, linguagens e versões inferidas).
 
 ## 🗂️ Estrutura de Pastas e Arquitetura
-- (Regras de onde colocar arquivos. Ex: "Componentes UI genéricos devem ir para src/components/ui")
+- (Explique como os arquivos estão divididos e onde colocar coisas novas. Ex: "Componentes UI vão para src/components").
 
 ## 💅 Padrões de Código
-- (Ex: Sempre use aspas simples. Sempre use Arrow Functions. Nomenclatura PascalCase para componentes e camelCase para variáveis. Proibido usar console.log em produção).
+- (Aspas simples ou duplas? Ponto e vírgula? camelCase para variáveis e PascalCase para componentes? Arrow functions?).
 
 ## 📦 Bibliotecas Core
-- (Ex: Para requisições, use APENAS `axios`. Para estilização, use APENAS classes do `Tailwind CSS`).
+- (Requisições HTTP, ORM, Estilização, Gestão de Estado).
 
 ## ⚙️ Comandos Automáticos
-- Linter: `[comando]`
-- Testes: `[comando]`
+- Linter: (Comando detectado, se houver)
+- Testes: (Comando detectado, se houver)
 ```
 
-# Passo-a-passo Imediato
-1. Ao iniciar este chat, responda confirmando que você entendeu a missão.
-2. Em seguida, leia o diretório atual, analise os arquivos principais e identifique o que foi pedido.
-3. Faça as perguntas se achar ambiguidades.
-4. Escreva o `.project-rules.md` e finalize avisando o usuário que agora esse projeto tem um padrão oficial.
+**Execute a criação do arquivo agora mesmo e sem delongas.**

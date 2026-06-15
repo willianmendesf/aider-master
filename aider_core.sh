@@ -223,12 +223,21 @@ draft-rules() {
     local modelo="${1:-default}"
     [ "$1" = "default" ] && shift || shift 0 2>/dev/null
 
-    echo "🤖 Iniciando o modo Leitura de Padrões..."
-    echo "O Aider vai vasculhar sua base de código e criar o .project-rules.md."
+    echo "========================================================"
+    echo "🤖 MODO EXTRATOR DE REGRAS INICIADO"
+    echo "========================================================"
+    echo "📦 Lendo todos os seus arquivos para entender o padrão (isso pode levar uns segundos)..."
+    
+    # Cria o bundle temporário focado para extração
+    repomix --output .aider-draft-context.txt > /dev/null 2>&1
 
     local SKILLS=(
         --read "$AIDER_GLOBAL_DIR/skills/rules-extractor.md"
+        --read ".aider-draft-context.txt"
     )
 
-    agent "$modelo" "${SKILLS[@]}" --message "Por favor, leia meu projeto atual, identifique nossos padrões arquiteturais (framework, styles, testes), comandos principais, estrutura de pastas e crie o arquivo .project-rules.md na raiz. Se houver ambiguidades sobre o padrão adotado (ex: misturando aspas simples/duplas ou dois tipos de state manager), PERGUNTE antes de gerar o arquivo!" "$@"
+    agent "$modelo" "${SKILLS[@]}" --message "Use o arquivo .aider-draft-context.txt fornecido para entender todo o projeto. CRIE o arquivo .project-rules.md na raiz DE IMEDIATO com base no código lido. NUNCA faça perguntas óbvias. Leia o código e defina a regra." "$@"
+    
+    # Limpa o arquivo temporário depois
+    rm -f .aider-draft-context.txt
 }
