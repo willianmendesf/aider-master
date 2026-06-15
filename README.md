@@ -133,8 +133,14 @@ Após recarregar o seu terminal (source ~/.bashrc), os seguintes comandos estar�
 | ask [modelo] | Abre o chat do Aider em modo pergunta (ask) com as suas habilidades (skills) já injetadas. |
 | plan [modelo] | Abre o Aider em modo Arquiteto (--architect), ideal para planejar refatorações complexas. |
 | study [modelo] | Abre o modo pergunta ignorando completamente o Git do projeto (--no-git). |
+| draft-rules | Roda o modo Extrator de Padrões. O Aider lerá a pasta atual, descobrirá os padrões de lint, bibliotecas e estrutura, e criará um `.project-rules.md` automático. |
 | context [arquivo.txt] | Roda o Repomix focado na pasta src/, gerando um relatório compactado do código (padrão: study-output.txt). |
 | brain-index [caminho] [nome] | Executa o indexador RAG para alimentar a base de conhecimento do cérebro da aplicação. |
+
+### 🤖 Loop de Autonomia (Auto-Correção)
+O Aider foi configurado para ser 100% autônomo nas validações do seu código:
+- **Auto-Rules:** Se houver um arquivo `.project-rules.md` na raiz do projeto, o Aider irá carregá-lo silenciosamente em todos os chats, respeitando todas as regras impostas nele.
+- **Auto-Linter/Teste:** Se você rodar o Aider em uma pasta que tenha um `package.json` contendo scripts de `"lint"` ou `"test"`, o Aider ligará a **Auto-Correção**. Sempre que ele escrever um arquivo, o próprio Aider rodará o linter no terminal e, se quebrar, ele reescreverá o código para consertar o erro sem que você precise pedir!
 
 ### 💡 Exemplos Práticos:
 

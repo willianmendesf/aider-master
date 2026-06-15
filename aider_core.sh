@@ -38,6 +38,24 @@ agent() {
     echo "🌱 Modo Econômico"
     echo "🤖 Iniciado com modelo: $MODELO"
 
+    # --- LOOP DE AUTONOMIA E DETECÇÃO DE REGRAS ---
+    if [ -f "./.project-rules.md" ]; then
+        echo "📜 Regras do projeto detectadas e injetadas automaticamente."
+        EXTRA_FLAGS+=(--read "./.project-rules.md")
+    fi
+
+    if [ -f "./package.json" ]; then
+        if grep -q '"lint"' "./package.json"; then
+            echo "🔧 Linter detectado (npm run lint). Auto-correção ativada."
+            EXTRA_FLAGS+=(--lint-cmd "npm run lint")
+        fi
+        if grep -q '"test"' "./package.json"; then
+            echo "🧪 Testes detectados (npm run test). Auto-teste ativado."
+            EXTRA_FLAGS+=(--test-cmd "npm run test")
+        fi
+    fi
+    # ----------------------------------------------
+
     mkdir -p .aider
     touch .aider/.aider.root.md
 
@@ -198,4 +216,19 @@ brain-index() {
         return 1
     fi
     "$AIDER_GLOBAL_DIR/rag/indexer.sh" "$1" "$2"
+}
+
+# Modo Extrator de Regras (Draft Rules)
+draft-rules() {
+    local modelo="${1:-default}"
+    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+
+    echo "🤖 Iniciando o modo Leitura de Padrões..."
+    echo "O Aider vai vasculhar sua base de código e criar o .project-rules.md."
+
+    local SKILLS=(
+        --read "$AIDER_GLOBAL_DIR/skills/rules-extractor.md"
+    )
+
+    agent "$modelo" "${SKILLS[@]}" --message "Por favor, leia meu projeto atual, identifique nossos padrões arquiteturais (framework, styles, testes), comandos principais, estrutura de pastas e crie o arquivo .project-rules.md na raiz. Se houver ambiguidades sobre o padrão adotado (ex: misturando aspas simples/duplas ou dois tipos de state manager), PERGUNTE antes de gerar o arquivo!" "$@"
 }
