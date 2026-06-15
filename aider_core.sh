@@ -38,6 +38,9 @@ agent() {
     echo "🌱 Modo Econômico"
     echo "🤖 Iniciado com modelo: $MODELO"
 
+    mkdir -p .aider
+    touch .aider/.aider.root.md
+
     # Execução dinâmica baseada nas variáveis do ambiente ativo
     PYTHONUTF8=1 OPENAI_API_KEY="$MINHA_CHAVE_API" \
     command aider --config "$AIDER_GLOBAL_DIR/$AIDER_CONFIG_FILE" \
@@ -51,6 +54,7 @@ agent() {
                   --chat-history-file ".aider/.aider.chat.history.md" \
                   --llm-history-file ".aider/.aider.llm.history" \
                   --aiderignore "$AIDER_GLOBAL_DIR/ignores/.aiignore" \
+                  --read ".aider/.aider.root.md" \
                   "${EXTRA_FLAGS[@]}" \
                   "$@"
 }
