@@ -82,19 +82,45 @@ Abra o seu .bashrc de usuário no Windows e adicione ao final:
 
 ---
 
-## 🧠 Configurando o Cérebro (MCP & RAG)
+## 🧠 Usando a Memória do Projeto (RAG & MCP)
 
-O Aider lê servidores MCP globais a partir de uma pasta específica do sistema. Use os comandos abaixo para linkar o seu arquivo de configuração centralizado.
+Para economizar tokens, este ecossistema possui um sistema RAG nativo. Como o Aider atualmente não suporta o protocolo MCP de forma nativa, criamos um script CLI (`rag_cli.py`) que simula a "ferramenta MCP" direto no chat do Aider, utilizando busca inteligente com fallback full-text!
 
-### 🐧 No Linux
-Execute no terminal para criar o link simbólico:
+### 1. Indexando o seu projeto (Construindo a Memória)
+Antes de consultar, você precisa "ensinar" o projeto ao sistema. Execute no seu terminal:
+```bash
+# Indexar um projeto inteiro ou um arquivo consolidado (ex: bundle-output.txt)
+brain-index /[caminho-do-projeto] [nome-do-projeto]
+```
+
+### 2. Consultando o RAG por dentro do Aider
+Sempre que estiver no chat do Aider e precisar buscar o funcionamento de uma função, lógica antiga, ou entender a estrutura do projeto **sem gastar tokens lendo arquivos desnecessários**, use o comando `/run`:
+
+```text
+# Para buscar por uma lógica, função, ou palavra-chave:
+/run python3 /dados/aider/rag/rag_cli.py search "como conectar no banco"
+
+# Para ver a estrutura de pastas e mapeamento do projeto:
+/run python3 /dados/aider/rag/rag_cli.py map
+```
+*(No Windows, substitua `python3` por `python` e você pode usar a variável `$AIDER_GLOBAL_DIR/rag/rag_cli.py` caso prefira o caminho absoluto).*
+
+> **💡 Dica:** O script é inteligente! Ele rastreia a pasta `.git` do diretório atual para inferir automaticamente em qual projeto do banco de RAG ele deve procurar.
+
+### 3. Usando com Editores Externos via MCP (Cursor, Windsurf, Claude Desktop)
+Se você usa IAs ou editores que possuem suporte ao protocolo MCP real, o servidor já está configurado. Basta apontar o software para o `mcp/code_rag_server.py` ou usar o nosso `mcp.json`. Exemplo de link simbólico para sistemas baseados no Claude:
+
+#### 🐧 No Linux
+```bash
   mkdir -p ~/.config/aider
   ln -sf /dados/aider/mcp/mcp.json ~/.config/aider/mcp.json
+```
 
-### 🪟 No Windows (Git Bash)
-Execute no Git Bash como Administrador para criar o link simbólico do Windows:
+#### 🪟 No Windows (Git Bash)
+```bash
   mkdir -p ~/.config/aider
   ln -sf [seu-caminho-windows]/aider/mcp/mcp.json ~/.config/aider/mcp.json
+```
 
 ---
 
