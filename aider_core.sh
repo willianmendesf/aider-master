@@ -4,9 +4,9 @@
 
 # Skills globais carregadas sempre como base
 BASE_SKILLS=(
-    "$AIDER_GLOBAL_DIR/skills/anti-hallucination.md"
-    "$AIDER_GLOBAL_DIR/skills/clean-code.md"
-    "$AIDER_GLOBAL_DIR/skills/rtk-master.md"
+    --read "$AIDER_GLOBAL_DIR/skills/anti-hallucination.md"
+    --read "$AIDER_GLOBAL_DIR/skills/clean-code.md"
+    --read "$AIDER_GLOBAL_DIR/skills/rtk-master.md"
 )
 
 # Função Principal (Agent)
@@ -66,18 +66,18 @@ plan() {
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
-        "$AIDER_GLOBAL_DIR/skills/context-builder.md"
-        "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
+        --read "$AIDER_GLOBAL_DIR/skills/context-builder.md"
+        --read "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
     )
 
-    agent "$modelo" --read "${SKILLS[@]}" --architect "$@"
+    agent "$modelo" "${SKILLS[@]}" --architect "$@"
 }
 
 # Modo Ask
 ask() {
     local modelo="${1:-default}"
     [ "$1" = "default" ] && shift || shift 0 2>/dev/null
-    agent "$modelo" --read "${BASE_SKILLS[@]}" --chat-mode ask "$@"
+    agent "$modelo" "${BASE_SKILLS[@]}" --chat-mode ask "$@"
 }
 
 # Modo Ask específico para bugs
@@ -87,11 +87,11 @@ ask-bug() {
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
-        "$AIDER_GLOBAL_DIR/skills/root-cause-analysis.md"
-        "$AIDER_GLOBAL_DIR/skills/bug-hunter.md"
+        --read "$AIDER_GLOBAL_DIR/skills/root-cause-analysis.md"
+        --read "$AIDER_GLOBAL_DIR/skills/bug-hunter.md"
     )
 
-    agent "$modelo" --read "${SKILLS[@]}" --chat-mode ask "$@"
+    agent "$modelo" "${SKILLS[@]}" --chat-mode ask "$@"
 }
 
 # Modo Ask específico para refatoração
@@ -101,14 +101,14 @@ ask-refactor() {
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
-        "$AIDER_GLOBAL_DIR/skills/context-builder.md"
-        "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
-        "$AIDER_GLOBAL_DIR/skills/enterprise-refactor.md"
-        "$AIDER_GLOBAL_DIR/skills/test-generator.md"
-        "$AIDER_GLOBAL_DIR/skills/pr-review.md"
+        --read "$AIDER_GLOBAL_DIR/skills/context-builder.md"
+        --read "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
+        --read "$AIDER_GLOBAL_DIR/skills/enterprise-refactor.md"
+        --read "$AIDER_GLOBAL_DIR/skills/test-generator.md"
+        --read "$AIDER_GLOBAL_DIR/skills/pr-review.md"
     )
 
-    agent "$modelo" --read "${SKILLS[@]}" "$@"
+    agent "$modelo" "${SKILLS[@]}" "$@"
 }
 
 # Modo Ask específico para migração
@@ -118,14 +118,14 @@ ask-migration() {
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
-        "$AIDER_GLOBAL_DIR/skills/analysis.md"
-        "$AIDER_GLOBAL_DIR/skills/context-builder.md"
-        "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
-        "$AIDER_GLOBAL_DIR/skills/enterprise-refactor.md"
-        "$AIDER_GLOBAL_DIR/skills/test-generator.md"
+        --read "$AIDER_GLOBAL_DIR/skills/analysis.md"
+        --read "$AIDER_GLOBAL_DIR/skills/context-builder.md"
+        --read "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
+        --read "$AIDER_GLOBAL_DIR/skills/enterprise-refactor.md"
+        --read "$AIDER_GLOBAL_DIR/skills/test-generator.md"
     )
 
-    agent "$modelo" --read "${SKILLS[@]}" "$@"
+    agent "$modelo" "${SKILLS[@]}" "$@"
 }
 
 # Modo Ask específico para revisão de código
@@ -135,13 +135,13 @@ ask-review() {
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
-        "$AIDER_GLOBAL_DIR/skills/pr-review.md"
-        "$AIDER_GLOBAL_DIR/skills/bug-hunter.md"
-        "$AIDER_GLOBAL_DIR/skills/security-audit.md"
-        "$AIDER_GLOBAL_DIR/skills/performance-audit.md"
+        --read "$AIDER_GLOBAL_DIR/skills/pr-review.md"
+        --read "$AIDER_GLOBAL_DIR/skills/bug-hunter.md"
+        --read "$AIDER_GLOBAL_DIR/skills/security-audit.md"
+        --read "$AIDER_GLOBAL_DIR/skills/performance-audit.md"
     )
 
-    agent "$modelo" --read "${SKILLS[@]}" --chat-mode ask "$@"
+    agent "$modelo" "${SKILLS[@]}" --chat-mode ask "$@"
 }
 
 # Modo Ask específico para empresas
@@ -151,26 +151,26 @@ ask-enterprise() {
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
-        "$AIDER_GLOBAL_DIR/skills/context-builder.md"
-        "$AIDER_GLOBAL_DIR/skills/analysis.md"
-        "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
-        "$AIDER_GLOBAL_DIR/skills/enterprise-refactor.md"
-        "$AIDER_GLOBAL_DIR/skills/root-cause-analysis.md"
-        "$AIDER_GLOBAL_DIR/skills/bug-hunter.md"
-        "$AIDER_GLOBAL_DIR/skills/security-audit.md"
-        "$AIDER_GLOBAL_DIR/skills/performance-audit.md"
-        "$AIDER_GLOBAL_DIR/skills/test-generator.md"
-        "$AIDER_GLOBAL_DIR/skills/pr-review.md"
+        --read "$AIDER_GLOBAL_DIR/skills/context-builder.md"
+        --read "$AIDER_GLOBAL_DIR/skills/analysis.md"
+        --read "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
+        --read "$AIDER_GLOBAL_DIR/skills/enterprise-refactor.md"
+        --read "$AIDER_GLOBAL_DIR/skills/root-cause-analysis.md"
+        --read "$AIDER_GLOBAL_DIR/skills/bug-hunter.md"
+        --read "$AIDER_GLOBAL_DIR/skills/security-audit.md"
+        --read "$AIDER_GLOBAL_DIR/skills/performance-audit.md"
+        --read "$AIDER_GLOBAL_DIR/skills/test-generator.md"
+        --read "$AIDER_GLOBAL_DIR/skills/pr-review.md"
     )
 
-    agent "$modelo" --read "${SKILLS[@]}" "$@"
+    agent "$modelo" "${SKILLS[@]}" "$@"
 }
 
 # Modo Study (Ask sem Git e com as sub-skills base)
 study() {
     local modelo="${1:-default}"
     [ "$1" = "default" ] && shift || shift 0 2>/dev/null
-    agent "$modelo" --read "${BASE_SKILLS[@]}" --chat-mode ask --no-git "$@"
+    agent "$modelo" "${BASE_SKILLS[@]}" --chat-mode ask --no-git "$@"
 }
 
 # Empacotador de Contexto para IA (Unificado e protegido pelo .aiignore global)
