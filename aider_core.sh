@@ -10,7 +10,6 @@ BASE_SKILLS=(
 )
 
 # Função Principal (Agent)
-# Função Principal (Agent)
 agent() {
     local MODELO_DEFAULT="o3-mini"
     local MODELO=""

@@ -5,7 +5,7 @@
       "args": ["-y", "@modelcontextprotocol/server-filesystem", "/"]
     },
     "code-rag": {
-      "command": "/dados/aider/venv/bin/python",
+      "command": "python",
       "args": ["/dados/aider/mcp/code_rag_server.py"]
     }
   }
