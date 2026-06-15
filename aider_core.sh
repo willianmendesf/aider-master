@@ -44,7 +44,9 @@ agent() {
                   --openai-api-base "$MEU_PROVEDOR_URL" \
                   --model "openai/$MODELO" \
                   --no-browser \
-                  --no-git \
+                  --no-auto-commits \
+                  --no-dirty-commits \
+                  --map-tokens 0 \
                   --input-history-file ".aider/.aider.input.history" \
                   --chat-history-file ".aider/.aider.chat.history.md" \
                   --llm-history-file ".aider/.aider.llm.history" \
