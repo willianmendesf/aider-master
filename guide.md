@@ -1,8 +1,8 @@
 # 1. Remover a pasta venv antiga (que está com problemas)
-rm -rf /dados/aider/venv
+rm -rf ./venv
 
 # 2. Criar um NOVO ambiente virtual
-python3 -m venv /dados/aider/venv
+python3 -m venv ./venv
 
 # 3. Ativar o novo ambiente
 source /dados/aider/venv/bin/activate

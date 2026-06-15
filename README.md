@@ -36,22 +36,23 @@ Siga os passos abaixo de acordo com o seu sistema operacional para preparar a pa
   pip install --upgrade pip
   pip install aider-chat fastmcp chromadb sentence-transformers
 
+
+
 ### No Windows (Via Git Bash)
 
   # 1. Instale o Repomix globalmente (Abra o CMD ou PowerShell como Administrador)
   npm install -g repomix
 
-  # 2. Abra o Git Bash, navegue até a pasta e configure o ambiente virtual
-  cd /c/dev/programs/aider
-  rm -rf venv
-  python -m venv venv
-  source venv/Scripts/activate  # Nota: No Windows o caminho usa 'Scripts' com S maiúsculo
+  # 2. Abra o Git Bash e instale o gerenciador global pipx
+  python -m pip install pipx --upgrade
+  python -m pipx ensurepath
 
-  # 3. Atualize o pip e instale as dependências
-  pip install --upgrade pip
-  pip install aider-chat fastmcp chromadb sentence-transformers
+  # 🚨 IMPORTANTE: Feche e abra o seu Git Bash agora para o PATH do Windows atualizar!
 
----
+  # 3. Instale o Aider e o ecossistema do cérebro de forma isolada e compatível
+  pipx install aider-chat --pip-args="--pre --upgrade-strategy=eager"
+  pipx inject aider-chat fastmcp chromadb sentence-transformers
+
 
 ## 🔗 Vinculando os Atalhos ao Terminal (.bashrc)
 
@@ -93,7 +94,7 @@ Execute no terminal para criar o link simbólico:
 ### 🪟 No Windows (Git Bash)
 Execute no Git Bash como Administrador para criar o link simbólico do Windows:
   mkdir -p ~/.config/aider
-  ln -sf /c/dev/programs/aider/mcp/mcp.json ~/.config/aider/mcp.json
+  ln -sf [seu-caminho-windows]/aider/mcp/mcp.json ~/.config/aider/mcp.json
 
 ---
 
