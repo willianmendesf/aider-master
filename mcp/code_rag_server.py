@@ -6,13 +6,18 @@ from mcp.server.fastmcp import FastMCP
 mcp = FastMCP("CodeRAG")
 
 # Caminho base para seus índices - compatível com Linux e Windows
-RAG_ROOT = "/dados/aider/rag/db"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+RAG_ROOT = os.path.join(os.path.dirname(SCRIPT_DIR), "rag", "db")
 
 def _discover_project_name(project_name: str = None) -> str:
-    """Se o Aider não passar o nome do projeto, descobrimos pelo diretório atual."""
+    """Se o Aider não passar o nome do projeto, descobrimos pela raiz do git ou diretório atual."""
     if project_name and project_name.strip():
         return project_name
-    # Pega o nome da pasta onde o usuário abriu o terminal
+    current = os.getcwd()
+    while current and current != "/" and current != os.path.dirname(current):
+        if os.path.isdir(os.path.join(current, ".git")):
+            return os.path.basename(current)
+        current = os.path.dirname(current)
     return os.path.basename(os.getcwd())
 
 @mcp.tool()
