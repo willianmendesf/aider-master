@@ -228,8 +228,8 @@ draft-rules() {
     echo "========================================================"
     echo "📦 Lendo todos os seus arquivos para entender o padrão (isso pode levar uns segundos)..."
     
-    # Cria o bundle temporário focado para extração
-    repomix --output .aider-draft-context.txt > /dev/null 2>&1
+    # Cria o bundle usando a função global para HERDAR o .aiignore (removendo package-lock, locks, etc)
+    bundle ".aider-draft-context.txt" > /dev/null 2>&1
 
     local SKILLS=(
         --read "$AIDER_GLOBAL_DIR/skills/rules-extractor.md"
