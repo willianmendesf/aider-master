@@ -229,15 +229,20 @@ draft-rules() {
     echo "📦 Lendo todos os seus arquivos para entender o padrão (isso pode levar uns segundos)..."
     
     # Cria o bundle usando a função global para HERDAR o .aiignore (removendo package-lock, locks, etc)
-    bundle ".aider-draft-context.txt" > /dev/null 2>&1
+    bundle ".aider-draft-context-full.txt" > /dev/null 2>&1
+    
+    # Corta o arquivo para conter apenas as primeiras 4000 linhas (Amostragem)
+    # Isso garante ~40k tokens no máximo, impedindo o estouro de limite de 200k,
+    # e ainda é contexto mais do que suficiente para a IA inferir as regras.
+    head -n 4000 .aider-draft-context-full.txt > .aider-draft-context.txt
 
     local SKILLS=(
         --read "$AIDER_GLOBAL_DIR/skills/rules-extractor.md"
         --read ".aider-draft-context.txt"
     )
 
-    agent "$modelo" "${SKILLS[@]}" --message "Use o arquivo .aider-draft-context.txt fornecido para entender todo o projeto. CRIE o arquivo .project-rules.md na raiz DE IMEDIATO com base no código lido. NUNCA faça perguntas óbvias. Leia o código e defina a regra." "$@"
+    agent "$modelo" "${SKILLS[@]}" --message "Use o arquivo .aider-draft-context.txt fornecido para entender o padrão do projeto. Ele contém a árvore de pastas e uma amostra do código-fonte. CRIE o arquivo .project-rules.md na raiz DE IMEDIATO. NUNCA faça perguntas." "$@"
     
-    # Limpa o arquivo temporário depois
-    rm -f .aider-draft-context.txt
+    # Limpa os arquivos temporários depois
+    rm -f .aider-draft-context.txt .aider-draft-context-full.txt
 }
