@@ -38,21 +38,10 @@ agent() {
     echo "🌱 Modo Econômico"
     echo "🤖 Iniciado com modelo: $MODELO"
 
-    # --- LOOP DE AUTONOMIA E DETECÇÃO DE REGRAS ---
+    # --- INJEÇÃO DE REGRAS DE PROJETO ---
     if [ -f "./.project-rules.md" ]; then
         echo "📜 Regras do projeto detectadas e injetadas automaticamente."
         EXTRA_FLAGS+=(--read "./.project-rules.md")
-    fi
-
-    if [ -f "./package.json" ]; then
-        if grep -q '"lint"' "./package.json"; then
-            echo "🔧 Linter detectado (npm run lint). Auto-correção ativada."
-            EXTRA_FLAGS+=(--lint-cmd "npm run lint")
-        fi
-        if grep -q '"test"' "./package.json"; then
-            echo "🧪 Testes detectados (npm run test). Auto-teste ativado."
-            EXTRA_FLAGS+=(--test-cmd "npm run test")
-        fi
     fi
     # ----------------------------------------------
 

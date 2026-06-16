@@ -3,3 +3,15 @@
 # ==========================================
 export MINHA_CHAVE_API="SUA_CHAVE_AQUI"
 export MEU_PROVEDOR_URL="SEU_ENDPOINT_AQUI"
+
+# ==========================================
+# INTEGRAÇÃO BITBUCKET (Para ler Comentários de PRs)
+# ==========================================
+# Crie um App Password no Bitbucket com permissão de leitura em "Pull requests"
+export BITBUCKET_USERNAME="seu_usuario_ou_email"
+export BITBUCKET_APP_PASSWORD="seu_app_password_gerado"
+
+# (Opcional) O Workspace e o Repo são detectados automaticamente pelo .git/config
+# Mas se quiser forçar para algum projeto específico, preencha abaixo:
+# export BITBUCKET_WORKSPACE="squad-parceiros"
+# export BITBUCKET_REPO="portal-corretor-susep"
