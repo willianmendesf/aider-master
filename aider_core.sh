@@ -161,6 +161,7 @@ dev() {
     local SKILLS=(
         "${BASE_SKILLS[@]}"
         --read "$AIDER_GLOBAL_DIR/skills/dev-golden-path.md"
+        --read "$AIDER_GLOBAL_DIR/skills/angular-patterns.md"
     )
 
     echo "🔨 Iniciando Motor de Execução Seguro baseado em: $PLANO..."
@@ -174,8 +175,12 @@ ask() {
     agent "$modelo" "${BASE_SKILLS[@]}" --chat-mode ask "$@"
 }
 
-# Modo Ask específico para bugs
-ask-bug() {
+# ==========================================
+# AIDER OS: Comandos de Qualidade e Investigação
+# ==========================================
+
+# Comando para Debug Avançado (Root Cause Analysis)
+debug() {
     local modelo="${1:-default}"
     [ "$1" = "default" ] && shift || shift 0 2>/dev/null
 
@@ -185,7 +190,31 @@ ask-bug() {
         --read "$AIDER_GLOBAL_DIR/skills/bug-hunter.md"
     )
 
-    agent "$modelo" "${SKILLS[@]}" --chat-mode ask "$@"
+    if [ -s ".ai/context/project-map.md" ]; then
+        SKILLS+=(--read ".ai/context/project-map.md")
+    else
+        echo "⚠️ AVISO: O mapa do projeto não existe. Isso pode reduzir a precisão do diagnóstico."
+    fi
+
+    echo "🐛 Iniciando Investigação de Causa Raiz (Debug)..."
+    agent "$modelo" "${SKILLS[@]}" --message "Atue como Investigador Sênior (Root Cause Analysis). Analise o erro ou problema relatado pelo usuário. Localize a raiz do problema cruzando com o contexto do projeto. NÃO sugira gambiarras, emita o relatório técnico e aponte o arquivo exato a ser corrigido." "$@"
+}
+
+# Comando para Revisão Operacional (Code Review Funcional)
+review() {
+    local modelo="${1:-default}"
+    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+
+    local SKILLS=(
+        "${BASE_SKILLS[@]}"
+        --read "$AIDER_GLOBAL_DIR/skills/pr-review.md"
+        --read "$AIDER_GLOBAL_DIR/skills/bug-hunter.md"
+        --read "$AIDER_GLOBAL_DIR/skills/security-audit.md"
+        --read "$AIDER_GLOBAL_DIR/skills/angular-patterns.md"
+    )
+
+    echo "🔎 Iniciando Revisão Operacional (PR / Micro-Gerenciamento)..."
+    agent "$modelo" "${SKILLS[@]}" --message "Atue como Revisor Operacional de PR. Seu foco é sujeira de código, variáveis não usadas, logs perdidos e erros sintáticos evidentes. Emita o laudo (APROVADO, REPROVADO, RESSALVAS) e liste as linhas exatas onde a sujeira/bug se encontra." "$@"
 }
 
 # Modo Ask específico para refatoração
@@ -200,6 +229,7 @@ ask-refactor() {
         --read "$AIDER_GLOBAL_DIR/skills/enterprise-refactor.md"
         --read "$AIDER_GLOBAL_DIR/skills/test-generator.md"
         --read "$AIDER_GLOBAL_DIR/skills/pr-review.md"
+        --read "$AIDER_GLOBAL_DIR/skills/angular-patterns.md"
     )
 
     agent "$modelo" "${SKILLS[@]}" "$@"
@@ -220,22 +250,6 @@ ask-migration() {
     )
 
     agent "$modelo" "${SKILLS[@]}" "$@"
-}
-
-# Modo Ask específico para revisão de código
-ask-review() {
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
-
-    local SKILLS=(
-        "${BASE_SKILLS[@]}"
-        --read "$AIDER_GLOBAL_DIR/skills/pr-review.md"
-        --read "$AIDER_GLOBAL_DIR/skills/bug-hunter.md"
-        --read "$AIDER_GLOBAL_DIR/skills/security-audit.md"
-        --read "$AIDER_GLOBAL_DIR/skills/performance-audit.md"
-    )
-
-    agent "$modelo" "${SKILLS[@]}" --chat-mode ask "$@"
 }
 
 # Modo Ask específico para empresas
@@ -398,6 +412,7 @@ code-review() {
     local SKILLS=(
         "${BASE_SKILLS[@]}"
         --read "$AIDER_GLOBAL_DIR/skills/governance-audit.md"
+        --read "$AIDER_GLOBAL_DIR/skills/angular-patterns.md"
         "${REGRAS_PROJETO[@]}"
     )
 
