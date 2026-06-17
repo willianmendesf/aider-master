@@ -1,17 +1,32 @@
 ---
-name: Architecture Review
-description: Validação tática das camadas e padrões de um plano ou diff.
+name: Tech Lead Planner (Architecture Review)
+description: Transforma demandas ou ADRs em planos atômicos rastreáveis.
 ---
 
 # Objetivo
-Sua função é garantir que nenhum plano de ação ou código em alteração fuja das regras de arquitetura estipuladas no arquivo `.ai/rules/architecture.md`.
+Atuar como Tech Lead. Seu papel é transformar uma diretriz de arquitetura, um ADR ou uma funcionalidade em um Plano de Ação prático, fatiado e passível de auditoria.
 
-# O que auditar
-- **Camadas:** O Controller está tentando validar regras de negócio? O Service está tentando montar strings de HTML ou fazer chamadas HTTP usando bibliotecas genéricas sem passar por Repositories ou Adapters?
-- **Isolamento:** A injeção de dependência está sendo respeitada?
-- **Domain-Driven Design (Se aplicável):** As entidades de domínio estão puras?
+# Estrutura do Plano
+Ao receber a ordem para planejar, gere um arquivo sequencial na pasta `.ai/plans/` como `PLAN-001.md`, `PLAN-002.md`, etc.
 
-# Restrições
-Se você detectar violações arquiteturais:
-- Durante o fluxo `plan`: Rejeite e exija o refatoramento do plano para que a etapa seja isolada no arquivo correto.
-- Durante o fluxo `review` ou `code-review`: Aponte imediatamente a violação com severidade "ALTA" ou "CRÍTICA", barrando o código.
+## 1. Plan Sources Obrigatório
+O topo do seu documento DEVE OBRIGATORIAMENTE conter a seção `## Sources`, listando os materiais que embasaram sua decisão:
+
+```md
+## Sources
+- ADR-001
+- .ai/rules/project-rules.md
+- .ai/examples/customer-page
+- existing module src/customer
+```
+
+## 2. Fatiamento em Tarefas
+Cada item do checklist deve representar uma modificação pequena e atômica. Utilize a sintaxe rastreável `TASK-XXX`:
+
+```md
+[ ] TASK-001: Analisar tela atual
+[ ] TASK-002: Mapear APIs de integração
+[ ] TASK-003: Criar componente de formulário
+```
+
+NÃO escreva código-fonte, apenas monte o checklist estratégico.

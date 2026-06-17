@@ -94,6 +94,14 @@ agent() {
 
 # Comando para Análise e Decisão Arquitetural (Gera ADR)
 architect() {
+    if [ -z "$1" ]; then
+        echo "❌ ERRO: Architect requer uma decisão arquitetural a ser analisada."
+        echo "Exemplo: architect \"Migrar Context API para Redux\""
+        return 1
+    fi
+    local DEMANDA="$1"
+    shift
+
     local modelo="${1:-default}"
     [ "$1" = "default" ] && shift || shift 0 2>/dev/null
 
@@ -110,7 +118,33 @@ architect() {
     fi
 
     echo "🏛️ Atuando como Arquiteto para gerar um ADR..."
-    agent "$modelo" "${SKILLS[@]}" --message "Atue como Arquiteto. Analise a demanda, avalie as alternativas, decida os trade-offs e CRIE um arquivo ADR na pasta .ai/decisions/. Não gere ou modifique NENHUM código fonte." "$@"
+    agent "$modelo" "${SKILLS[@]}" --message "Atue como Arquiteto. Demanda: $DEMANDA. Avalie as alternativas, decida os trade-offs e CRIE um arquivo sequencial na pasta .ai/decisions/. Não gere ou modifique NENHUM código fonte." "$@"
+}
+
+# Comando para Decisões Táticas Locais (Sem ADR)
+design() {
+    if [ -z "$1" ]; then
+        echo "❌ ERRO: Design requer uma decisão tática a ser estruturada."
+        echo "Exemplo: design \"Nova tela de consulta de boletos\""
+        return 1
+    fi
+    local DEMANDA="$1"
+    shift
+
+    local modelo="${1:-default}"
+    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+
+    local SKILLS=(
+        "${BASE_SKILLS[@]}"
+        --read "$AIDER_GLOBAL_DIR/skills/system-design.md"
+    )
+
+    if [ -s ".ai/context/project-map.md" ]; then
+        SKILLS+=(--read ".ai/context/project-map.md")
+    fi
+
+    echo "🏗️ Atuando como System Design (Decisão Tática local)..."
+    agent "$modelo" "${SKILLS[@]}" --message "Demanda Tática: $DEMANDA. Use a skill System Design para apresentar uma proposta estrutural sem gerar código e sem gerar ADR." "$@"
 }
 
 # Comando para Fatiamento de Tarefas (Gera Plano Rastreável)
@@ -295,6 +329,91 @@ bundle() {
     echo "✅ Concluído! O arquivo '$OUTPUT_FILE' foi gerado com sucesso."
 }
 
+# ==========================================
+# AIDER OS: Comandos de Engenharia Reversa e Padrões
+# ==========================================
+
+# Comando para Engenharia Reversa de Legado
+discover() {
+    if [ -z "$1" ]; then
+        echo "❌ ERRO: Discover requer um foco de investigação."
+        echo "Exemplo: discover \"listar boletos\" [--flow | --api | --db | --deep]"
+        return 1
+    fi
+    local DEMANDA="$1"
+    shift
+
+    local FLAG="Padrão"
+    for arg in "$@"; do
+        case $arg in
+            --flow) FLAG="--flow"; shift ;;
+            --api) FLAG="--api"; shift ;;
+            --db) FLAG="--db"; shift ;;
+            --deep) FLAG="--deep"; shift ;;
+        esac
+    done
+
+    local modelo="${1:-default}"
+    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+
+    _init_ai_workspace
+    bundle ".ai/.aider-discover-context-full.txt" > /dev/null 2>&1
+    head -n 25000 .ai/.aider-discover-context-full.txt > .ai/.aider-discover.txt
+
+    local SKILLS=(
+        "${BASE_SKILLS[@]}"
+        --read "$AIDER_GLOBAL_DIR/skills/discover.md"
+        --read ".ai/.aider-discover.txt"
+    )
+
+    echo "🕵️ Iniciando Engenharia Reversa (Modo: $FLAG) sobre: $DEMANDA..."
+    agent "$modelo" "${SKILLS[@]}" --message "Execute o modo $FLAG da skill Discover com foco em: $DEMANDA. Analise o contexto lido e mapeie tudo em detalhes." "$@"
+    
+    _cleanup_ai_temps
+}
+
+# Comando para Convergir Código para o Golden Path
+standardize() {
+    if [ -z "$1" ]; then
+        echo "❌ ERRO: Uso: standardize <alvo> [--audit | --plan | --fix]"
+        return 1
+    fi
+    local ALVO="$1"
+    shift
+
+    local FLAG="--audit"
+    for arg in "$@"; do
+        case $arg in
+            --audit) FLAG="--audit"; shift ;;
+            --plan) FLAG="--plan"; shift ;;
+            --fix) FLAG="--fix"; shift ;;
+        esac
+    done
+
+    local modelo="${1:-default}"
+    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+
+    local SKILLS=(
+        "${BASE_SKILLS[@]}"
+        --read "$AIDER_GLOBAL_DIR/skills/standardizer.md"
+    )
+
+    # Injeta arquivos do Golden Path para referência
+    [ -d ".ai/examples" ] && find .ai/examples -type f -name "*.md" -o -name "*.ts" -o -name "*.js" | while read -r f; do SKILLS+=(--read "$f"); done
+
+    local MENSAGEM="Atue como Standardizer."
+    if [ "$FLAG" = "--audit" ]; then
+        MENSAGEM="$MENSAGEM Analise o código em $ALVO e liste APENAS as divergências encontradas contra o Golden Path e regras. NÃO altere o código e não gere planos."
+    elif [ "$FLAG" = "--plan" ]; then
+        MENSAGEM="$MENSAGEM Analise o código em $ALVO, encontre as divergências e CRIE um PLAN-XXX.md na pasta .ai/plans/ com as tarefas rastreáveis TASK-XXX. Não altere o código fonte."
+    elif [ "$FLAG" = "--fix" ]; then
+        MENSAGEM="$MENSAGEM Analise o código em $ALVO e EXECUTE as adequações necessárias no arquivo fornecido para convergir estritamente aos padrões do Golden Path."
+    fi
+
+    echo "📏 Iniciando Padronização em $ALVO (Modo: $FLAG)..."
+    agent "$modelo" "${SKILLS[@]}" --file "$ALVO" --message "$MENSAGEM" "$@"
+}
+
 # Indexador RAG do Cérebro
 brain-index() {
     if [ -z "$1" ] || [ -z "$2" ]; then
@@ -337,6 +456,36 @@ draft-rules() {
 # ==========================================
 # AIDER OS: Comandos de Governança e Contexto
 # ==========================================
+
+# Comando Bootstrap para Novos Projetos
+bootstrap() {
+    local modelo="${1:-default}"
+    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+
+    echo "🚀 Iniciando Bootstrap do Projeto (Aider OS v1.0)..."
+    _init_ai_workspace
+
+    bundle ".ai/.aider-bootstrap-full.txt" > /dev/null 2>&1
+    head -n 25000 .ai/.aider-bootstrap-full.txt > .ai/.aider-bootstrap.txt
+
+    local SKILLS=(
+        "${BASE_SKILLS[@]}"
+        --read "$AIDER_GLOBAL_DIR/skills/context-builder.md"
+        --read "$AIDER_GLOBAL_DIR/skills/governance-audit.md"
+    )
+
+    echo "🔍 Mapeando projeto e gerando Backlog Técnico..."
+    agent "$modelo" "${SKILLS[@]}" --read ".ai/.aider-bootstrap.txt" \
+    --message "Atue simultaneamente como Context Builder e Auditor. Analise o contexto e execute as 4 etapas:
+1. Atualize .ai/context/project-map.md e domain-map.md.
+2. Crie .ai/decisions/ARCHITECTURE-BASELINE.md com o Laudo Base e Score.
+3. Crie .ai/plans/TECHNICAL-DEBT-BACKLOG.md listando dívidas técnicas em formato [ ] TASK-XXX.
+4. Crie .ai/examples/candidates.md sugerindo classes/arquivos bem avaliados como Golden Path.
+NÃO faça perguntas." "$@"
+
+    _cleanup_ai_temps
+    echo "✅ Bootstrap Concluído! Cérebro inicializado."
+}
 
 # Comando para atualizar o mapa de TODO o projeto
 sync-full() {
