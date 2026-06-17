@@ -12,11 +12,10 @@ _init_ai_workspace() {
     mkdir -p .ai/examples
 }
 
-# Limpa ESTRITAMENTE arquivos temporários (bundles/textos) gerados pelas ferramentas
 _cleanup_ai_temps() {
     echo "🧹 Limpando artefatos temporários de IA..."
     rm -f ./.repomixignore
-    rm -f .ai/.aider-*-context*.txt
+    rm -f .ai/.aider-*.txt
     rm -f .aider-draft-context*.txt # Legado
 }
 # ----------------------------------------------------
@@ -94,7 +93,7 @@ agent() {
 
 # Comando para Análise e Decisão Arquitetural (Gera ADR)
 architect() {
-    if [ -z "$1" ]; then
+    if [ -z "$1" ] || [[ "$1" == -* ]]; then
         echo "❌ ERRO: Architect requer uma decisão arquitetural a ser analisada."
         echo "Exemplo: architect \"Migrar Context API para Redux\""
         return 1
@@ -102,8 +101,11 @@ architect() {
     local DEMANDA="$1"
     shift
 
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
@@ -123,7 +125,7 @@ architect() {
 
 # Comando para Decisões Táticas Locais (Sem ADR)
 design() {
-    if [ -z "$1" ]; then
+    if [ -z "$1" ] || [[ "$1" == -* ]]; then
         echo "❌ ERRO: Design requer uma decisão tática a ser estruturada."
         echo "Exemplo: design \"Nova tela de consulta de boletos\""
         return 1
@@ -131,8 +133,11 @@ design() {
     local DEMANDA="$1"
     shift
 
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
@@ -149,8 +154,11 @@ design() {
 
 # Comando para Fatiamento de Tarefas (Gera Plano Rastreável)
 plan() {
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
@@ -182,8 +190,11 @@ dev() {
     local PLANO="$1"
     shift
     
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     # Verifica se o plano existe
     if [ ! -f "$PLANO" ]; then
@@ -204,8 +215,11 @@ dev() {
 
 # Modo Ask
 ask() {
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
     agent "$modelo" "${BASE_SKILLS[@]}" --chat-mode ask "$@"
 }
 
@@ -215,8 +229,11 @@ ask() {
 
 # Comando para Debug Avançado (Root Cause Analysis)
 debug() {
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
@@ -236,8 +253,11 @@ debug() {
 
 # Comando para Revisão Operacional (Code Review Funcional)
 review() {
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
@@ -253,8 +273,11 @@ review() {
 
 # Modo Ask específico para refatoração
 ask-refactor() {
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
@@ -271,8 +294,11 @@ ask-refactor() {
 
 # Modo Ask específico para migração
 ask-migration() {
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
@@ -288,8 +314,11 @@ ask-migration() {
 
 # Modo Ask específico para empresas
 ask-enterprise() {
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
@@ -310,22 +339,28 @@ ask-enterprise() {
 
 # Modo Study (Ask sem Git e com as sub-skills base)
 study() {
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
     agent "$modelo" "${BASE_SKILLS[@]}" --chat-mode ask --no-git "$@"
 }
 
-# Empacotador de Contexto para IA (Unificado e protegido pelo .aiignore global)
 bundle() {
     local OUTPUT_FILE="${1:-bundle-output.txt}"
+    shift 1 2>/dev/null
 
     echo "🚀 Puxando Filtros Globais (.aiignore)..."
     cp "$AIDER_GLOBAL_DIR/ignores/.aiignore" ./.repomixignore 2>/dev/null
     
     echo "📦 Rodando compactação do projeto -> Gerando: $OUTPUT_FILE..."
-    repomix --output "$OUTPUT_FILE"
+    if [ "$#" -gt 0 ]; then
+        repomix "$@" --output "$OUTPUT_FILE"
+    else
+        repomix --output "$OUTPUT_FILE"
+    fi
     
-    _cleanup_ai_temps
     echo "✅ Concluído! O arquivo '$OUTPUT_FILE' foi gerado com sucesso."
 }
 
@@ -335,7 +370,7 @@ bundle() {
 
 # Comando para Engenharia Reversa de Legado
 discover() {
-    if [ -z "$1" ]; then
+    if [ -z "$1" ] || [[ "$1" == -* ]]; then
         echo "❌ ERRO: Discover requer um foco de investigação."
         echo "Exemplo: discover \"listar boletos\" [--flow | --api | --db | --deep]"
         return 1
@@ -344,17 +379,21 @@ discover() {
     shift
 
     local FLAG="Padrão"
-    for arg in "$@"; do
-        case $arg in
-            --flow) FLAG="--flow"; shift ;;
-            --api) FLAG="--api"; shift ;;
-            --db) FLAG="--db"; shift ;;
-            --deep) FLAG="--deep"; shift ;;
+    local TEMPO_ARGS=()
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --flow|--api|--db|--deep) FLAG="$1"; shift ;;
+            -*) TEMPO_ARGS+=("$1"); shift ;;
+            *) break ;;
         esac
     done
+    set -- "${TEMPO_ARGS[@]}" "$@"
 
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     _init_ai_workspace
     bundle ".ai/.aider-discover-context-full.txt" > /dev/null 2>&1
@@ -382,16 +421,21 @@ standardize() {
     shift
 
     local FLAG="--audit"
-    for arg in "$@"; do
-        case $arg in
-            --audit) FLAG="--audit"; shift ;;
-            --plan) FLAG="--plan"; shift ;;
-            --fix) FLAG="--fix"; shift ;;
+    local TEMPO_ARGS=()
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --audit|--plan|--fix) FLAG="$1"; shift ;;
+            -*) TEMPO_ARGS+=("$1"); shift ;;
+            *) break ;;
         esac
     done
+    set -- "${TEMPO_ARGS[@]}" "$@"
 
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
@@ -425,8 +469,11 @@ brain-index() {
 
 # Modo Extrator de Regras (Draft Rules)
 draft-rules() {
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     echo "========================================================"
     echo "🤖 MODO EXTRATOR DE REGRAS INICIADO"
@@ -459,8 +506,11 @@ draft-rules() {
 
 # Comando Bootstrap para Novos Projetos
 bootstrap() {
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     echo "🚀 Iniciando Bootstrap do Projeto (Aider OS v1.0)..."
     _init_ai_workspace
@@ -474,8 +524,20 @@ bootstrap() {
         --read "$AIDER_GLOBAL_DIR/skills/governance-audit.md"
     )
 
+    # Pre-cria os arquivos com um comentário inicial para que o Aider (no formato diff) não se perca com arquivos 100% vazios
+    [ ! -f .ai/context/project-map.md ] && echo "<!-- Init -->" > .ai/context/project-map.md
+    [ ! -f .ai/context/domain-map.md ] && echo "<!-- Init -->" > .ai/context/domain-map.md
+    [ ! -f .ai/decisions/ARCHITECTURE-BASELINE.md ] && echo "<!-- Init -->" > .ai/decisions/ARCHITECTURE-BASELINE.md
+    [ ! -f .ai/plans/TECHNICAL-DEBT-BACKLOG.md ] && echo "<!-- Init -->" > .ai/plans/TECHNICAL-DEBT-BACKLOG.md
+    [ ! -f .ai/examples/candidates.md ] && echo "<!-- Init -->" > .ai/examples/candidates.md
+
     echo "🔍 Mapeando projeto e gerando Backlog Técnico..."
     agent "$modelo" "${SKILLS[@]}" --read ".ai/.aider-bootstrap.txt" \
+    --file ".ai/context/project-map.md" \
+    --file ".ai/context/domain-map.md" \
+    --file ".ai/decisions/ARCHITECTURE-BASELINE.md" \
+    --file ".ai/plans/TECHNICAL-DEBT-BACKLOG.md" \
+    --file ".ai/examples/candidates.md" \
     --message "Atue simultaneamente como Context Builder e Auditor. Analise o contexto e execute as 4 etapas:
 1. Atualize .ai/context/project-map.md e domain-map.md.
 2. Crie .ai/decisions/ARCHITECTURE-BASELINE.md com o Laudo Base e Score.
@@ -489,8 +551,11 @@ NÃO faça perguntas." "$@"
 
 # Comando para atualizar o mapa de TODO o projeto
 sync-full() {
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
@@ -506,7 +571,7 @@ sync-full() {
     head -n 15000 .ai/.aider-sync-context-full.txt > .ai/.aider-sync-context.txt
 
     echo "🔄 Rodando Sync Full (Otimizado com Amostragem de Contexto)..."
-    agent "$modelo" "${SKILLS[@]}" --read ".ai/.aider-sync-context.txt" .ai/context/project-map.md .ai/context/domain-map.md --message "Leia o contexto fornecido (que contém a árvore de diretórios no topo) e atue como Context Builder. ATUALIZE IMEDIATAMENTE os arquivos .ai/context/project-map.md e .ai/context/domain-map.md. NUNCA crie regras, apenas mapeie o existente. NUNCA modifique código fonte." "$@"
+    agent "$modelo" "${SKILLS[@]}" --read ".ai/.aider-sync-context.txt" --file .ai/context/project-map.md --file .ai/context/domain-map.md --message "Leia o contexto fornecido (que contém a árvore de diretórios no topo) e atue como Context Builder. ATUALIZE IMEDIATAMENTE os arquivos .ai/context/project-map.md e .ai/context/domain-map.md. NUNCA crie regras, apenas mapeie o existente. NUNCA modifique código fonte." "$@"
 
     _cleanup_ai_temps
 }
@@ -532,8 +597,14 @@ sync-module() {
     )
 
     echo "🔄 Rodando Sync Module focado em: $MODULO..."
-    # Adicionamos os arquivos de contexto existentes no chat de forma editável e passamos os arquivos do módulo
-    agent "$modelo" "${SKILLS[@]}" --file "$MODULO" .ai/context/project-map.md .ai/context/domain-map.md --message "Atue como Context Builder. Leia APENAS o módulo especificado ($MODULO). Atualize os arquivos na pasta .ai/context/ (project-map.md e domain-map.md) integrando o que você aprendeu deste módulo sem perder o que já existe sobre os outros módulos. NÃO faça perguntas, apenas atualize os arquivos." "$@"
+    
+    bundle ".ai/.aider-sync-module-full.txt" "$MODULO" > /dev/null 2>&1
+    head -n 15000 .ai/.aider-sync-module-full.txt > .ai/.aider-sync-module.txt
+
+    # Adicionamos os arquivos de contexto existentes no chat de forma editável e passamos o bundle do módulo como leitura
+    agent "$modelo" "${SKILLS[@]}" --read ".ai/.aider-sync-module.txt" --file .ai/context/project-map.md --file .ai/context/domain-map.md --message "Atue como Context Builder. Leia APENAS o módulo especificado ($MODULO) fornecido no contexto de leitura. Atualize os arquivos na pasta .ai/context/ (project-map.md e domain-map.md) integrando o que você aprendeu deste módulo sem perder o que já existe sobre os outros módulos. NÃO faça perguntas, apenas atualize os arquivos." "$@"
+    
+    _cleanup_ai_temps
 }
 
 # Comando para Auditoria Punitiva de Conformidade
@@ -544,11 +615,14 @@ code-review() {
         echo "Exemplo: code-review ."
         return 1
     fi
-    local ALVO="$1"
+    local PASTA="$1"
     shift
-    
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+
+    local modelo="default"
+    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+        modelo="$1"
+        shift
+    fi
 
     # Lê todos os estatutos da pasta .ai/rules caso existam no projeto atual
     local REGRAS_PROJETO=()
