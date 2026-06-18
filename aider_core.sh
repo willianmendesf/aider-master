@@ -1003,20 +1003,8 @@ standardize() {
         local PLANO_ARQUIVO=".ai/plans/${NOME_PLANO}.md"
         local TMP_PLANO="tmp-${NOME_PLANO}.standardize.md"
         
-        touch "$TMP_PLANO"
-
-        local MENSAGEM="Você recebeu .ai/cache/standardize-report.md gerado por script determinístico.
-
-Crie um plano rastreável em $TMP_PLANO.
-
-Regras:
-- Use os IDs STD-001, STD-002 etc.
-- Não invente evidências.
-- Não audite novamente.
-- Não altere código.
-- Preserve endpoints, clients, payloads, models e regras de negócio.
-
-Formato obrigatório:
+        # Preenche o esqueleto inicial para forçar a IA a usar um bloco de SEARCH/REPLACE
+        cat <<EOF > "$TMP_PLANO"
 # $NOME_PLANO
 
 ## Sources
@@ -1025,13 +1013,26 @@ Formato obrigatório:
 - .ai/rules/project-rules.md
 
 ## Tarefas
-[ ] TASK-001 — Resolver STD-001
-- Evidência:
-- Ação segura:
-- Arquivos prováveis:
+<!-- INSIRA_AS_TAREFAS_AQUI -->
+EOF
 
-[ ] TASK-002 — Resolver STD-002
-..."
+        local MENSAGEM="Você recebeu .ai/cache/standardize-report.md gerado por script determinístico.
+
+Substitua a tag <!-- INSIRA_AS_TAREFAS_AQUI --> no arquivo $TMP_PLANO pelas tarefas rastreáveis.
+
+Regras:
+- Use os IDs STD-001, STD-002 etc.
+- Não invente evidências.
+- Não audite novamente.
+- Não altere código.
+- Preserve endpoints, clients, payloads, models e regras de negócio.
+
+Formato OBRIGATÓRIO de cada tarefa:
+[ ] TASK-001 — Resolver STD-001
+- Evidência: [evidência exata do laudo]
+- Ação segura: [sua recomendação]
+- Arquivos prováveis: [arquivo alvo]
+"
         echo "📏 Planejando Padronização em $ALVO (Gerando rascunho em $TMP_PLANO)..."
         agent "$modelo" "${SKILLS[@]}" "${CONTEXT_ARGS[@]}" --file "$TMP_PLANO" --yes --message "$MENSAGEM" "$@"
         
