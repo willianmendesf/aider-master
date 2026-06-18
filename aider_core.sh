@@ -529,7 +529,7 @@ dev() {
     echo "🔨 Iniciando Motor de Execução Seguro baseado em: $PLANO..."
     
     # Checagem primária em shell antes de chamar a IA
-    if ! grep -q "VERIFY: APROVADO" "$PLANO"; then
+    if ! grep -qE "VERIFY:\*\* APROVADO|VERIFY: APROVADO" "$PLANO"; then
         echo "❌ ERRO: O plano '$PLANO' não possui a certificação 'VERIFY: APROVADO'."
         echo "   Execute o comando 'verify $PLANO' para auditar o plano antes do dev."
         return 1
