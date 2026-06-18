@@ -6,10 +6,12 @@
 # Garante que a estrutura base exista sem nunca apagar conteúdo
 _init_ai_workspace() {
     mkdir -p .ai/rules
-    mkdir -p .ai/context
     mkdir -p .ai/plans/archive
     mkdir -p .ai/decisions
     mkdir -p .ai/examples
+    mkdir -p .ai/knowledge
+    mkdir -p .ai/tooling/catalog
+    mkdir -p .ai/cache
 }
 
 _cleanup_ai_temps() {
@@ -154,10 +156,20 @@ design() {
 
 # Comando para Fatiamento de Tarefas (Gera Plano Rastreável)
 plan() {
+    # O primeiro argumento SEMPRE é a demanda (string). Nunca é o modelo.
+    # Uso: plan "Minha demanda" [--model <id>]
+    if [ -z "$1" ] || [[ "$1" == --* ]]; then
+        echo "❌ ERRO: Uso: plan \"Sua demanda descritiva\" [--model <modelo>]"
+        echo "Exemplo: plan \"Refatorar a classe Appointment para o padrão CQRS\""
+        return 1
+    fi
+    local DEMANDA="$1"
+    shift
+
     local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"
+        shift 2
     fi
 
     local SKILLS=(
@@ -173,7 +185,23 @@ plan() {
     fi
 
     echo "🗺️ Atuando como Tech Lead para fatiar o Plano de Ação..."
-    agent "$modelo" "${SKILLS[@]}" --message "Atue como Tech Lead. Baseado na demanda (ou ADR referenciado), quebre o requisito em tarefas atômicas de checklist [ ]. Salve o resultado em .ai/plans/PLAN-[NUM].md. Para cada TASK gerada, deixe claro no arquivo qual PLAN e ADR ela pertence para facilitar a Rastreabilidade Absoluta. NENHUM código fonte deve ser gerado ou alterado." "$@"
+    echo "📝 Demanda: $DEMANDA"
+    
+    # Determina o próximo número de plano e cria o arquivo na pasta atual
+    mkdir -p .ai/plans
+    local PROXIMO_NUM=1
+    if ls .ai/plans/PLAN-*.md 1> /dev/null 2>&1; then
+        # Conta os arquivos e soma 1
+        local COUNT=$(ls -1 .ai/plans/PLAN-*.md | wc -l)
+        PROXIMO_NUM=$((COUNT + 1))
+    fi
+    local PLANO_ARQUIVO=".ai/plans/PLAN-$(printf "%03d" $PROXIMO_NUM).md"
+    touch "$PLANO_ARQUIVO"
+
+    agent "$modelo" "${SKILLS[@]}" \
+        --file "$PLANO_ARQUIVO" \
+        --yes \
+        --message "Atue como Tech Lead. Demanda: $DEMANDA. Quebre o requisito em tarefas atômicas de checklist [ ]. Salve o resultado EDITANDO O ARQUIVO $PLANO_ARQUIVO (que já está no chat). Para cada TASK gerada, deixe claro no arquivo qual PLAN e ADR ela pertence para facilitar a Rastreabilidade Absoluta. NENHUM código fonte deve ser gerado ou alterado."
 }
 
 # ==========================================
@@ -182,25 +210,35 @@ plan() {
 
 # Comando para Execução Restrita (Codificação Pura)
 dev() {
-    if [ -z "$1" ]; then
-        echo "Uso: dev <Caminho do Plano .ai/plans/PLAN-XXX.md> [modelo]"
+    # Uso: dev <caminho_do_plano> [--model <id>]
+    if [ -z "$1" ] || [[ "$1" == --* ]]; then
+        echo "Uso: dev <Caminho do Plano .ai/plans/PLAN-XXX.md> [--model <modelo>]"
         echo "Exemplo: dev .ai/plans/PLAN-001.md"
         return 1
     fi
     local PLANO="$1"
     shift
-    
+
     local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"
+        shift 2
     fi
 
-    # Verifica se o plano existe
+    # Tenta resolver o plano: primeiro como caminho absoluto/relativo ao CWD,
+    # depois a partir da raiz do repositório Git (suporte a monorepo/subpastas)
     if [ ! -f "$PLANO" ]; then
-        echo "❌ ERRO: O plano '$PLANO' não foi encontrado."
-        echo "💡 Use o comando 'plan' para gerar as tarefas antes de codificar."
-        return 1
+        local GIT_ROOT
+        GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+        if [ -n "$GIT_ROOT" ] && [ -f "$GIT_ROOT/$PLANO" ]; then
+            PLANO="$GIT_ROOT/$PLANO"
+        else
+            echo "❌ ERRO: O plano '$PLANO' não foi encontrado."
+            echo "   Procurei em: $(pwd)/$PLANO"
+            [ -n "$GIT_ROOT" ] && echo "   E em: $GIT_ROOT/$PLANO"
+            echo "💡 Use o comando 'plan' para gerar as tarefas antes de codificar."
+            return 1
+        fi
     fi
 
     local SKILLS=(
@@ -251,10 +289,101 @@ debug() {
     agent "$modelo" "${SKILLS[@]}" --message "Atue como Investigador Sênior (Root Cause Analysis). Analise o erro ou problema relatado pelo usuário. Localize a raiz do problema cruzando com o contexto do projeto. NÃO sugira gambiarras, emita o relatório técnico e aponte o arquivo exato a ser corrigido." "$@"
 }
 
+# Comando para Tribunal de Código (Code Review)
+# Uso: code-review <arquivo_ou_diretorio> [--model <id>]
+code-review() {
+    if [ -z "$1" ] || [[ "$1" == --* ]]; then
+        echo "❌ ERRO: Uso: code-review <arquivo_ou_diretorio> [--model <modelo>]"
+        echo "Exemplos:"
+        echo "  code-review src/app/pages/logged/appointments/"
+        echo "  code-review src/app/app.module.ts"
+        return 1
+    fi
+    local ALVO="$1"
+    shift
+
+    local modelo="default"
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"
+        shift 2
+    fi
+
+    # --- Validação do alvo ---
+    if [ ! -e "$ALVO" ]; then
+        echo "❌ ERRO: O alvo '$ALVO' não existe como arquivo ou diretório."
+        return 1
+    fi
+
+    # --- Montagem de evidência ---
+    local EVIDENCE_ARGS=()
+
+    if [ -f "$ALVO" ]; then
+        # Arquivo único: passa diretamente como --file
+        echo "📄 Arquivo individual selecionado para Code Review: $ALVO"
+        EVIDENCE_ARGS+=(--file "$ALVO")
+    elif [ -d "$ALVO" ]; then
+        # Diretório: gera bundle repomix com o conteúdo para garantir evidência concreta
+        _init_ai_workspace
+        local BUNDLE_FILE=".ai/cache/code-review-bundle.txt"
+        echo "📂 Diretório detectado. Gerando bundle de evidência: $BUNDLE_FILE"
+        if command -v repomix &>/dev/null; then
+            repomix "$ALVO" --output "$BUNDLE_FILE" --quiet 2>/dev/null \
+                || repomix "$ALVO" --output "$BUNDLE_FILE" 2>/dev/null
+        else
+            # Fallback: concatenar arquivos de código relevantes
+            find "$ALVO" -type f \(
+                -name "*.ts" -o -name "*.js" -o -name "*.java" \
+                -o -name "*.py" -o -name "*.cs" -o -name "*.kt"
+            \) -not -path "*/node_modules/*" -not -path "*/target/*" \
+               -not -path "*/dist/*" -not -path "*/.git/*" \
+            | head -n 60 \
+            | xargs -I{} sh -c 'echo "\n=== {} ==="; cat "{}"' \
+            > "$BUNDLE_FILE" 2>/dev/null
+        fi
+
+        if [ ! -s "$BUNDLE_FILE" ]; then
+            echo "❌ ERRO: Não foi possível gerar evidência do diretório '$ALVO'. Verifique se há arquivos de código."
+            return 1
+        fi
+
+        local LINE_COUNT
+        LINE_COUNT=$(wc -l < "$BUNDLE_FILE")
+        echo "✅ Bundle gerado com $LINE_COUNT linhas de evidência."
+        EVIDENCE_ARGS+=(--read "$BUNDLE_FILE")
+    fi
+
+    local SKILLS=(
+        "${BASE_SKILLS[@]}"
+        --read "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
+        --read "$AIDER_GLOBAL_DIR/skills/security-audit.md"
+    )
+
+    if [ -s ".ai/context/project-map.md" ]; then
+        SKILLS+=(--read ".ai/context/project-map.md")
+    fi
+    if [ -s ".ai/decisions/ARCHITECTURE-BASELINE.md" ]; then
+        SKILLS+=(--read ".ai/decisions/ARCHITECTURE-BASELINE.md")
+    fi
+
+    # Regras do projeto corrente
+    [ -f ".ai/constitution.md" ] && SKILLS+=(--read ".ai/constitution.md")
+    [ -f ".ai/rules/project-rules.md" ] && SKILLS+=(--read ".ai/rules/project-rules.md")
+    [ -f ".ai/rules/coding.md" ] && SKILLS+=(--read ".ai/rules/coding.md")
+    [ -f ".ai/rules/architecture.md" ] && SKILLS+=(--read ".ai/rules/architecture.md")
+    [ -f ".ai/rules/testing.md" ] && SKILLS+=(--read ".ai/rules/testing.md")
+
+    echo "⚖️ Iniciando Tribunal de Código (Code Review) em: $ALVO..."
+    agent "$modelo" "${SKILLS[@]}" "${EVIDENCE_ARGS[@]}" \
+        --message "Faça o Code Review dos arquivos/código do alvo '$ALVO' disponibilizados como contexto. Você DEVE analisar o conteúdo concreto fornecido — NÃO emita laudo genérico ou de aprovação sem evidência. Avalie: qualidade, segurança, padrões arquiteturais, acoplamento e manutenibilidade. Emita o laudo final com SCORE (0-100) e cite linhas específicas com problemas ou elogios." "$@"
+}
+
 # Comando para Revisão Operacional (Code Review Funcional)
 review() {
     local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"
+        shift 2
+    elif [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
         modelo="$1"
         shift
     fi
@@ -370,92 +499,148 @@ bundle() {
 
 # Comando para Engenharia Reversa de Legado
 discover() {
-    if [ -z "$1" ] || [[ "$1" == -* ]]; then
-        echo "❌ ERRO: Discover requer um foco de investigação."
-        echo "Exemplo: discover \"listar boletos\" [--flow | --api | --db | --deep]"
+    python3 "$AIDER_GLOBAL_DIR/scripts/query.py" discover "$@"
+}
+
+where() {
+    python3 "$AIDER_GLOBAL_DIR/scripts/query.py" where "$@"
+}
+
+impact() {
+    python3 "$AIDER_GLOBAL_DIR/scripts/query.py" impact "$@"
+}
+
+feature() {
+    if [ -z "$1" ]; then
+        echo "❌ ERRO: Uso: feature <Nome>"
         return 1
     fi
-    local DEMANDA="$1"
+    local ALVO="$1"
     shift
-
-    local FLAG="Padrão"
-    local TEMPO_ARGS=()
-    while [[ "$#" -gt 0 ]]; do
-        case $1 in
-            --flow|--api|--db|--deep) FLAG="$1"; shift ;;
-            -*) TEMPO_ARGS+=("$1"); shift ;;
-            *) break ;;
-        esac
-    done
-    set -- "${TEMPO_ARGS[@]}" "$@"
-
     local modelo="default"
     if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
         modelo="$1"
         shift
     fi
-
-    _init_ai_workspace
-    bundle ".ai/.aider-discover-context-full.txt" > /dev/null 2>&1
-    head -n 25000 .ai/.aider-discover-context-full.txt > .ai/.aider-discover.txt
-
+    
+    echo "🧠 Montando contexto para a feature: $ALVO..."
+    python3 "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$ALVO" > .ai/cache/feature_context.md
+    
+    if grep -q "⚠️ Nenhuma entidade" .ai/cache/feature_context.md; then
+        cat .ai/cache/feature_context.md
+        return 1
+    fi
+    
     local SKILLS=(
         "${BASE_SKILLS[@]}"
-        --read "$AIDER_GLOBAL_DIR/skills/discover.md"
-        --read ".ai/.aider-discover.txt"
     )
-
-    echo "🕵️ Iniciando Engenharia Reversa (Modo: $FLAG) sobre: $DEMANDA..."
-    agent "$modelo" "${SKILLS[@]}" --message "Execute o modo $FLAG da skill Discover com foco em: $DEMANDA. Analise o contexto lido e mapeie tudo em detalhes." "$@"
     
-    _cleanup_ai_temps
+    echo "🤖 Gerando relatório da feature..."
+    agent "$modelo" "${SKILLS[@]}" --read ".ai/cache/feature_context.md" --message "Aja como Arquiteto de Software. Usando APENAS o contexto fornecido em .ai/cache/feature_context.md, gere um relatório detalhado da Feature '$ALVO', navegando no grafo para explicar o fluxo e o propósito. Formate em Markdown claro." "$@"
 }
 
 # Comando para Convergir Código para o Golden Path
+# Uso: standardize <arquivo_ou_diretorio> [--audit | --plan | --fix] [--model <id>]
 standardize() {
-    if [ -z "$1" ]; then
-        echo "❌ ERRO: Uso: standardize <alvo> [--audit | --plan | --fix]"
+    if [ -z "$1" ] || [[ "$1" == --* ]]; then
+        echo "❌ ERRO: Uso: standardize <alvo> [--audit | --plan | --fix] [--model <modelo>]"
+        echo "Exemplos:"
+        echo "  standardize src/app/pages/login.component.ts --audit"
+        echo "  standardize src/app/pages/logged/appointments/ --plan"
         return 1
     fi
     local ALVO="$1"
     shift
 
+    # --- Validação de existência ANTES de qualquer coisa ---
+    if [ ! -e "$ALVO" ]; then
+        echo "❌ ERRO: O alvo '$ALVO' não existe como arquivo ou diretório."
+        echo "💡 Forneça o caminho real do componente (ex: src/app/login.component.ts ou src/app/pages/login/)."
+        return 1
+    fi
+
     local FLAG="--audit"
-    local TEMPO_ARGS=()
     while [[ "$#" -gt 0 ]]; do
         case $1 in
             --audit|--plan|--fix) FLAG="$1"; shift ;;
-            -*) TEMPO_ARGS+=("$1"); shift ;;
+            --model)
+                if [ -n "$2" ]; then
+                    local modelo="$2"; shift 2
+                else
+                    echo "❌ ERRO: --model requer um valor."; return 1
+                fi
+                ;;
             *) break ;;
         esac
     done
-    set -- "${TEMPO_ARGS[@]}" "$@"
-
-    local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
-    fi
+    local modelo="${modelo:-default}"
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
         --read "$AIDER_GLOBAL_DIR/skills/standardizer.md"
     )
 
-    # Injeta arquivos do Golden Path para referência
-    [ -d ".ai/examples" ] && find .ai/examples -type f -name "*.md" -o -name "*.ts" -o -name "*.js" | while read -r f; do SKILLS+=(--read "$f"); done
+    # Injeta exemplos do Golden Path para referência (usa --read, nunca --file)
+    if [ -d ".ai/examples" ]; then
+        while IFS= read -r f; do
+            SKILLS+=(--read "$f")
+        done < <(find .ai/examples -type f \( -name "*.md" -o -name "*.ts" -o -name "*.js" \))
+    fi
+
+    # --- Monta os argumentos de contexto de acordo com o tipo do alvo ---
+    local CONTEXT_ARGS=()
+    if [ -f "$ALVO" ]; then
+        # Arquivo único: pode ser editado diretamente com --fix
+        if [ "$FLAG" == "--fix" ]; then
+            CONTEXT_ARGS=(--file "$ALVO")
+        else
+            CONTEXT_ARGS=(--read "$ALVO")
+        fi
+    elif [ -d "$ALVO" ]; then
+        # Diretório: nunca usa --file diretamente num dir. Gera bundle para leitura.
+        _init_ai_workspace
+        local BUNDLE_FILE=".ai/cache/standardize-bundle.txt"
+        echo "📂 Diretório detectado. Gerando snapshot do código: $BUNDLE_FILE"
+        find "$ALVO" -type f \( \
+            -name "*.ts" -o -name "*.js" -o -name "*.java" \
+            -o -name "*.py" -o -name "*.cs" -o -name "*.kt" \
+        \) -not -path "*/node_modules/*" -not -path "*/target/*" \
+           -not -path "*/dist/*" -not -path "*/.git/*" \
+        | head -n 60 \
+        | while IFS= read -r srcfile; do
+            echo "\n=== $srcfile ==="
+            cat "$srcfile"
+        done > "$BUNDLE_FILE" 2>/dev/null
+
+        if [ ! -s "$BUNDLE_FILE" ]; then
+            echo "❌ ERRO: Nenhum arquivo de código encontrado em '$ALVO'."
+            return 1
+        fi
+        echo "✅ Bundle gerado ($(wc -l < "$BUNDLE_FILE") linhas)."
+        CONTEXT_ARGS=(--read "$BUNDLE_FILE")
+        if [ "$FLAG" == "--fix" ]; then
+            echo "⚠️  AVISO: --fix em diretório adiciona os arquivos como editáveis ao Aider."
+            while IFS= read -r srcfile; do
+                CONTEXT_ARGS+=(--file "$srcfile")
+            done < <(find "$ALVO" -type f \( \
+                -name "*.ts" -o -name "*.js" -o -name "*.java" \
+                -o -name "*.py" -o -name "*.cs" -o -name "*.kt" \
+            \) -not -path "*/node_modules/*" -not -path "*/target/*" \
+               -not -path "*/dist/*" -not -path "*/.git/*" | head -n 30)
+        fi
+    fi
 
     local MENSAGEM="Atue como Standardizer."
-    if [ "$FLAG" = "--audit" ]; then
-        MENSAGEM="$MENSAGEM Analise o código em $ALVO e liste APENAS as divergências encontradas contra o Golden Path e regras. NÃO altere o código e não gere planos."
-    elif [ "$FLAG" = "--plan" ]; then
-        MENSAGEM="$MENSAGEM Analise o código em $ALVO, encontre as divergências e CRIE um PLAN-XXX.md na pasta .ai/plans/ com as tarefas rastreáveis TASK-XXX. Não altere o código fonte."
-    elif [ "$FLAG" = "--fix" ]; then
-        MENSAGEM="$MENSAGEM Analise o código em $ALVO e EXECUTE as adequações necessárias no arquivo fornecido para convergir estritamente aos padrões do Golden Path."
+    if [ "$FLAG" == "--audit" ]; then
+        MENSAGEM="$MENSAGEM Analise o código do alvo '$ALVO' e liste APENAS as divergências encontradas contra o Golden Path e regras de projeto. NÃO altere o código e não gere planos."
+    elif [ "$FLAG" == "--plan" ]; then
+        MENSAGEM="$MENSAGEM Analise o código do alvo '$ALVO', encontre as divergências e CRIE um PLAN-XXX.md na pasta .ai/plans/ com as tarefas rastreáveis TASK-XXX. Não altere o código fonte."
+    elif [ "$FLAG" == "--fix" ]; then
+        MENSAGEM="$MENSAGEM Analise e EXECUTE as adequações no código do alvo '$ALVO' para convergir estritamente aos padrões do Golden Path."
     fi
 
     echo "📏 Iniciando Padronização em $ALVO (Modo: $FLAG)..."
-    agent "$modelo" "${SKILLS[@]}" --file "$ALVO" --message "$MENSAGEM" "$@"
+    agent "$modelo" "${SKILLS[@]}" "${CONTEXT_ARGS[@]}" --message "$MENSAGEM" "$@"
 }
 
 # Indexador RAG do Cérebro
@@ -496,8 +681,6 @@ draft-rules() {
     rm -f .ai/rules/project-rules.md
 
     agent "$modelo" "${SKILLS[@]}" --message "Use o arquivo .ai/.aider-draft-context.txt fornecido para entender o padrão do projeto. Ele contém a árvore de pastas e uma amostra do código-fonte. CRIE o arquivo .ai/rules/project-rules.md DE IMEDIATO. NUNCA faça perguntas." .ai/rules/project-rules.md "$@"
-    
-    _cleanup_ai_temps
 }
 
 # ==========================================
@@ -505,18 +688,27 @@ draft-rules() {
 # ==========================================
 
 # Comando Bootstrap para Novos Projetos
+# Combina ETL estrutural (Python/Compodoc/OpenAPI) + mapeamento LLM do contexto
 bootstrap() {
     local modelo="default"
     if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
+        modelo="$1"; shift
     fi
 
-    echo "🚀 Iniciando Bootstrap do Projeto (Aider OS v1.0)..."
+    echo "🚀 Iniciando Bootstrap do Projeto (Aider OS v2.0)..."
     _init_ai_workspace
 
+    # --- ETAPA 1: ETL estrutural (Compodoc/OpenAPI/Repomix → entities.json + graph.json) ---
+    echo ""
+    echo "📊 Etapa 1/2: Extração estrutural de entidades..."
+    python3 "$AIDER_GLOBAL_DIR/scripts/knowledge_pipeline.py"
+
+    # --- ETAPA 2: Mapeamento LLM (bundle → project-map.md + ARCHITECTURE-BASELINE.md) ---
+    echo ""
+    echo "🧠 Etapa 2/2: Mapeamento de contexto com IA (gera project-map.md)..."
+
     bundle ".ai/.aider-bootstrap-full.txt" > /dev/null 2>&1
-    head -n 25000 .ai/.aider-bootstrap-full.txt > .ai/.aider-bootstrap.txt
+    head -n 25000 ".ai/.aider-bootstrap-full.txt" > ".ai/.aider-bootstrap.txt"
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
@@ -524,72 +716,96 @@ bootstrap() {
         --read "$AIDER_GLOBAL_DIR/skills/governance-audit.md"
     )
 
-    # Pre-cria os arquivos com um comentário inicial para que o Aider (no formato diff) não se perca com arquivos 100% vazios
-    [ ! -f .ai/context/project-map.md ] && echo "<!-- Init -->" > .ai/context/project-map.md
-    [ ! -f .ai/context/domain-map.md ] && echo "<!-- Init -->" > .ai/context/domain-map.md
-    [ ! -f .ai/decisions/ARCHITECTURE-BASELINE.md ] && echo "<!-- Init -->" > .ai/decisions/ARCHITECTURE-BASELINE.md
-    [ ! -f .ai/plans/TECHNICAL-DEBT-BACKLOG.md ] && echo "<!-- Init -->" > .ai/plans/TECHNICAL-DEBT-BACKLOG.md
-    [ ! -f .ai/examples/candidates.md ] && echo "<!-- Init -->" > .ai/examples/candidates.md
-
     echo "🔍 Mapeando projeto e gerando Backlog Técnico..."
     agent "$modelo" "${SKILLS[@]}" --read ".ai/.aider-bootstrap.txt" \
-    --file ".ai/context/project-map.md" \
-    --file ".ai/context/domain-map.md" \
-    --file ".ai/decisions/ARCHITECTURE-BASELINE.md" \
-    --file ".ai/plans/TECHNICAL-DEBT-BACKLOG.md" \
-    --file ".ai/examples/candidates.md" \
+    --yes \
     --message "Atue simultaneamente como Context Builder e Auditor. Analise o contexto e execute as 4 etapas:
-1. Atualize .ai/context/project-map.md e domain-map.md.
-2. Crie .ai/decisions/ARCHITECTURE-BASELINE.md com o Laudo Base e Score.
+1. Atualize .ai/context/project-map.md e .ai/context/domain-map.md com o mapa completo do projeto (componentes, serviços, módulos, padrões encontrados).
+2. Crie .ai/decisions/ARCHITECTURE-BASELINE.md com o Laudo Base e Score de maturidade.
 3. Crie .ai/plans/TECHNICAL-DEBT-BACKLOG.md listando dívidas técnicas em formato [ ] TASK-XXX.
 4. Crie .ai/examples/candidates.md sugerindo classes/arquivos bem avaliados como Golden Path.
-NÃO faça perguntas." "$@"
+NÃO faça perguntas. NÃO modifique código fonte." \
+    .ai/context/project-map.md .ai/context/domain-map.md \
+    .ai/decisions/ARCHITECTURE-BASELINE.md \
+    .ai/plans/TECHNICAL-DEBT-BACKLOG.md \
+    .ai/examples/candidates.md "$@"
 
     _cleanup_ai_temps
+    echo ""
     echo "✅ Bootstrap Concluído! Cérebro inicializado."
+    echo "   📍 Mapa do projeto: .ai/context/project-map.md"
+    echo "   📍 Laudo de arquitetura: .ai/decisions/ARCHITECTURE-BASELINE.md"
+    echo "   📍 Backlog técnico: .ai/plans/TECHNICAL-DEBT-BACKLOG.md"
 }
 
 # Comando para atualizar o mapa de TODO o projeto
+# Uso: sync-full [--model <modelo>]
 sync-full() {
     local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"; shift 2
     fi
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
         --read "$AIDER_GLOBAL_DIR/skills/context-builder.md"
     )
-    
+
     _init_ai_workspace
-    
-    # Gera o bundle com repomix herdando o .aiignore (remove dependências e lixo)
+    mkdir -p .ai/context
+
+    # Pré-cria os arquivos para que o Aider não precise criar do zero
+    # (evita conflito com aiignore que bloqueia criação de arquivos em .ai/)
+    touch .ai/context/project-map.md .ai/context/domain-map.md
+
+    # Gera bundle do projeto inteiro (herdando .aiignore para excluir lixo)
+    echo "📦 Empacotando projeto para análise..."
     bundle ".ai/.aider-sync-context-full.txt" > /dev/null 2>&1
 
-    # OTIMIZAÇÃO DE TOKENS: Pegamos as primeiras 15.000 linhas e salvamos na pasta .ai/
-    head -n 15000 .ai/.aider-sync-context-full.txt > .ai/.aider-sync-context.txt
+    # Otimização de tokens: primeiras 15000 linhas
+    head -n 15000 ".ai/.aider-sync-context-full.txt" > ".ai/.aider-sync-context.txt"
 
-    echo "🔄 Rodando Sync Full (Otimizado com Amostragem de Contexto)..."
-    agent "$modelo" "${SKILLS[@]}" --read ".ai/.aider-sync-context.txt" --file .ai/context/project-map.md --file .ai/context/domain-map.md --message "Leia o contexto fornecido (que contém a árvore de diretórios no topo) e atue como Context Builder. ATUALIZE IMEDIATAMENTE os arquivos .ai/context/project-map.md e .ai/context/domain-map.md. NUNCA crie regras, apenas mapeie o existente. NUNCA modifique código fonte." "$@"
+    echo "🔄 Rodando Sync Full — atualizando project-map.md e domain-map.md..."
+    agent "$modelo" "${SKILLS[@]}" \
+        --read ".ai/.aider-sync-context.txt" \
+        --file ".ai/context/project-map.md" \
+        --file ".ai/context/domain-map.md" \
+        --yes \
+        --message "Leia o contexto fornecido (que contém a árvore de diretórios no topo e amostras de código) e atue como Context Builder. ATUALIZE IMEDIATAMENTE os arquivos .ai/context/project-map.md e .ai/context/domain-map.md com:
+- Mapa completo de componentes, serviços, módulos, páginas e suas responsabilidades
+- Endpoints de API identificados (URLs, métodos, parâmetros)
+- Padrões e convenções do projeto
+- Localização de models, guards, interceptors e componentes reutilizáveis
+NUNCA crie regras de negócio, apenas mapeie o que existe. NUNCA modifique código fonte." "$@"
 
     _cleanup_ai_temps
+    echo "✅ Sync Full concluído! .ai/context/project-map.md atualizado."
 }
 
-# Comando para atualizar o mapa de apenas um módulo específico (Econômico)
+# Comando para atualizar o mapa de apenas um módulo específico (econômico)
+# Uso: sync-module <caminho-do-modulo> [--model <modelo>]
 sync-module() {
-    if [ -z "$1" ]; then
-        echo "Uso: sync-module <caminho-do-modulo> [modelo]"
-        echo "Exemplo: sync-module src/modules/user"
+    if [ -z "$1" ] || [[ "$1" == --* ]]; then
+        echo "❌ ERRO: Uso: sync-module <caminho-do-modulo> [--model <modelo>]"
+        echo "Exemplo: sync-module src/app/pages/logged/appointments"
         return 1
     fi
     local MODULO="$1"
     shift
-    
-    local modelo="${1:-default}"
-    [ "$1" = "default" ] && shift || shift 0 2>/dev/null
+
+    # Valida existência do módulo
+    if [ ! -e "$MODULO" ]; then
+        echo "❌ ERRO: O módulo '$MODULO' não existe."
+        return 1
+    fi
+
+    local modelo="default"
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"; shift 2
+    fi
 
     _init_ai_workspace
+    mkdir -p .ai/context
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
@@ -597,48 +813,16 @@ sync-module() {
     )
 
     echo "🔄 Rodando Sync Module focado em: $MODULO..."
-    
-    bundle ".ai/.aider-sync-module-full.txt" "$MODULO" > /dev/null 2>&1
-    head -n 15000 .ai/.aider-sync-module-full.txt > .ai/.aider-sync-module.txt
-
-    # Adicionamos os arquivos de contexto existentes no chat de forma editável e passamos o bundle do módulo como leitura
-    agent "$modelo" "${SKILLS[@]}" --read ".ai/.aider-sync-module.txt" --file .ai/context/project-map.md --file .ai/context/domain-map.md --message "Atue como Context Builder. Leia APENAS o módulo especificado ($MODULO) fornecido no contexto de leitura. Atualize os arquivos na pasta .ai/context/ (project-map.md e domain-map.md) integrando o que você aprendeu deste módulo sem perder o que já existe sobre os outros módulos. NÃO faça perguntas, apenas atualize os arquivos." "$@"
-    
-    _cleanup_ai_temps
+    # Pré-cria os mapas de contexto para que o Aider possa editar (não criar do zero)
+    touch .ai/context/project-map.md .ai/context/domain-map.md
+    # Passa os arquivos do módulo e os mapas de contexto como editáveis
+    agent "$modelo" "${SKILLS[@]}" \
+        --file "$MODULO" \
+        --file ".ai/context/project-map.md" \
+        --file ".ai/context/domain-map.md" \
+        --yes \
+        --message "Atue como Context Builder. Leia APENAS o módulo especificado ($MODULO). Atualize os arquivos .ai/context/project-map.md e .ai/context/domain-map.md INTEGRANDO o que você aprendeu deste módulo sem perder o que já existe sobre os outros módulos. NÃO faça perguntas. NÃO modifique código fonte." "$@"
 }
 
-# Comando para Auditoria Punitiva de Conformidade
-code-review() {
-    if [ -z "$1" ]; then
-        echo "Uso: code-review <alvo> [modelo]"
-        echo "Exemplo: code-review src/modules/user"
-        echo "Exemplo: code-review ."
-        return 1
-    fi
-    local PASTA="$1"
-    shift
-
-    local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
-    fi
-
-    # Lê todos os estatutos da pasta .ai/rules caso existam no projeto atual
-    local REGRAS_PROJETO=()
-    [ -f ".ai/constitution.md" ] && REGRAS_PROJETO+=(--read ".ai/constitution.md")
-    [ -f ".ai/rules/project-rules.md" ] && REGRAS_PROJETO+=(--read ".ai/rules/project-rules.md")
-    [ -f ".ai/rules/coding.md" ] && REGRAS_PROJETO+=(--read ".ai/rules/coding.md")
-    [ -f ".ai/rules/architecture.md" ] && REGRAS_PROJETO+=(--read ".ai/rules/architecture.md")
-    [ -f ".ai/rules/testing.md" ] && REGRAS_PROJETO+=(--read ".ai/rules/testing.md")
-
-    local SKILLS=(
-        "${BASE_SKILLS[@]}"
-        --read "$AIDER_GLOBAL_DIR/skills/governance-audit.md"
-        --read "$AIDER_GLOBAL_DIR/skills/angular-patterns.md"
-        "${REGRAS_PROJETO[@]}"
-    )
-
-    echo "⚖️ Iniciando Tribunal de Código (Code-Review Punitivo) sobre: $ALVO..."
-    agent "$modelo" "${SKILLS[@]}" --file "$ALVO" --message "Atue estritamente como Auditor Sênior Implacável usando a skill Governance Audit. Analise o código fornecido contra os arquivos de regras lidos. Emita IMEDIATAMENTE o seu Laudo de Maturidade com Score (0-100) e Letra (A-E), listando todos os desvios. NUNCA altere o código fonte. Apenas emita o laudo de REPROVADO se as regras fundamentais forem quebradas." "$@"
-}
+# NOTA: A segunda definição de code-review() foi removida (duplicata que sobrescrevia a principal).
+# A definição correta está acima (~linha 279) com suporte a bundle, diretórios e regras do projeto.

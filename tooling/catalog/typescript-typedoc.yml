@@ -1,0 +1,16 @@
+name: TypeDoc
+stack: typescript
+priority: 90
+confidence: 90
+
+detect:
+  - tsconfig.json
+
+install:
+  - npm install -D typedoc
+
+generate:
+  - npx typedoc --json .ai/cache/typedoc/documentation.json
+
+outputs:
+  - .ai/cache/typedoc/documentation.json

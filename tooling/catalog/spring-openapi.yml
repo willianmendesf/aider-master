@@ -1,0 +1,13 @@
+name: OpenAPI
+stack: java
+priority: 100
+confidence: 100
+
+detect:
+  - pom.xml
+  - build.gradle
+
+outputs:
+  - api-specifications/api-previdencia.json
+  - openapi.json
+  - swagger.json

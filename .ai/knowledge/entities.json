@@ -1,0 +1,14 @@
+[
+  {
+    "id": "RepomixBundle",
+    "name": "Repomix Bundle",
+    "type": "bundle",
+    "file": ".ai/cache/repomix/bundle-output.txt",
+    "line": 0,
+    "source": "Repomix",
+    "confidence": 70,
+    "uses": [],
+    "used_by": [],
+    "tags": []
+  }
+]

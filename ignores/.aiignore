@@ -339,7 +339,6 @@ junit.xml
 *.mkv
 *.webm
 *.psd
-*.ai
 *.sketch
 *.fig
 *.blend
