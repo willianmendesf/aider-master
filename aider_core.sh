@@ -26,7 +26,6 @@ _cleanup_ai_temps() {
 BASE_SKILLS=(
     --read "$AIDER_GLOBAL_DIR/skills/anti-hallucination.md"
     --read "$AIDER_GLOBAL_DIR/skills/clean-code.md"
-    --read "$AIDER_GLOBAL_DIR/skills/rtk-master.md"
 )
 
 # Função Principal (Agent)
@@ -50,8 +49,7 @@ agent() {
     
     if [ -f "./bundle-output.txt" ]; then
         echo "📦 Bundle detectado automaticamente: ./bundle-output.txt."
-        echo "Adicione seu bundle-output.txt ao RAG com brain-index para indexar o conteúdo do bundle no RAG."
-        echo "fora do modo aider, rode no terminal: brain-index /[caminho-do-projeto]/bundle-output.txt [nome-do-projeto]"
+        # A integração RAG agora consome automaticamente os dados do bootstrap.
     fi
     # ----------------------------------------------
 
@@ -623,14 +621,7 @@ standardize() {
     agent "$modelo" "${SKILLS[@]}" "${CONTEXT_ARGS[@]}" --message "$MENSAGEM" "$@"
 }
 
-# Indexador RAG do Cérebro
-brain-index() {
-    if [ -z "$1" ] || [ -z "$2" ]; then
-        echo "🧠 Uso: brain-index /caminho/do/projeto nome_do_projeto"
-        return 1
-    fi
-    "$AIDER_GLOBAL_DIR/rag/indexer.sh" "$1" "$2"
-}
+# brain-index foi removido. A integração MCP agora lê diretamente de .ai/knowledge.
 
 # Modo Extrator de Regras (Draft Rules)
 draft-rules() {
@@ -649,7 +640,7 @@ draft-rules() {
     echo "📦 Lendo todos os seus arquivos para entender o padrão (isso pode levar uns segundos)..."
     
     bundle ".ai/.aider-draft-context-full.txt" > /dev/null 2>&1
-    head -n 12000 .ai/.aider-draft-context-full.txt > .ai/.aider-draft-context.txt
+    head -n 6000 .ai/.aider-draft-context-full.txt > .ai/.aider-draft-context.txt
 
     local SKILLS=(
         --read "$AIDER_GLOBAL_DIR/skills/rules-extractor.md"

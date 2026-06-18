@@ -108,12 +108,7 @@ Esta tabela serve como seu documento de consulta rápida para o dia a dia.
 | `discover <nome>` | Busca textual super-rápida. Mostra as propriedades da entidade, de onde veio e o Grau de Confiança da extração (ex: 100% via AST Compodoc). |
 | `impact <nome>` | **[Análise de Quebra]** Navega recursivamente no `graph.json` usando arestas reversas (`used_by`). Responde imediatamente: "Quem quebra se eu alterar esse Service?". |
 
-### 3. 🧠 RAG (Retrieval-Augmented Generation)
-| Comando | Descrição Completa e Casos de Uso |
-| :--- | :--- |
-| `brain-index <caminho_projeto> <nome_projeto>` | Indexa um projeto no banco de dados RAG local, para consultas rápidas posteriores via as ferramentas MCP `search_project_memory` e `get_project_map`. |
-| `python rag/rag_cli.py search <query> [nome_projeto]` | Busca no índice RAG um tópico (ex: `search "AppointmentService" dashboard-manager`). Se o projeto não for informado, tenta detectar automaticamente pelo git root. |
-| `python rag/rag_cli.py map [nome_projeto]` | Mostra a estrutura de arquivos do projeto indexado. |
+
 
 ### 4. 🎯 Orquestração Contextual com IA
 | Comando | Descrição Completa e Casos de Uso |

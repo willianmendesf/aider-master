@@ -1,66 +1,115 @@
 # /dados/aider/mcp/code_rag_server.py
 import os
-import sys
+import json
 from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("CodeRAG")
 
-# Caminho base para seus índices - compatível com Linux e Windows
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-RAG_ROOT = os.path.join(os.path.dirname(SCRIPT_DIR), "rag", "db")
+KNOWLEDGE_DIR = ".ai/knowledge"
+ENTITIES_FILE = os.path.join(KNOWLEDGE_DIR, "entities.json")
 
-def _discover_project_name(project_name: str = None) -> str:
-    """Se o Aider não passar o nome do projeto, descobrimos pela raiz do git ou diretório atual."""
-    if project_name and project_name.strip():
-        return project_name
-    current = os.getcwd()
-    while current and current != "/" and current != os.path.dirname(current):
-        if os.path.isdir(os.path.join(current, ".git")):
-            return os.path.basename(current)
-        current = os.path.dirname(current)
-    return os.path.basename(os.getcwd())
+def load_json(path):
+    if not os.path.exists(path):
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        try:
+            return json.load(f)
+        except Exception:
+            return []
+
+def _is_partial_index(entities) -> bool:
+    if not entities:
+        return False
+    types = {e.get("type") for e in entities}
+    return types == {"bundle"} or (len(entities) == 1 and entities[0].get("id") == "RepomixBundle")
+
+def _get_bundle_file(entities) -> str:
+    for e in entities:
+        if e.get("type") == "bundle" and e.get("file"):
+            return e.get("file")
+    return ""
+
+def _grep_in_bundle(bundle_file: str, term: str):
+    if not os.path.exists(bundle_file):
+        return []
+    results = []
+    try:
+        with open(bundle_file, "r", encoding="utf-8", errors="ignore") as f:
+            for i, line in enumerate(f, 1):
+                if term.lower() in line.lower():
+                    results.append((i, line.rstrip()))
+                    if len(results) >= 30:
+                        break
+    except Exception:
+        pass
+    return results
 
 @mcp.tool()
 def search_project_memory(query: str, project_name: str = "") -> str:
     """
-    Busca na memória indexada do projeto. Use para encontrar onde funções, 
-    regras, constantes ou lógicas de arquivos antigos/bundles estão implementadas.
+    Busca na memória estruturada do projeto atual (via Aider OS bootstrap).
+    Use para encontrar a localização de classes, funções, serviços ou regras extraídas.
     """
-    proj = _discover_project_name(project_name)
-    index_file = os.path.join(RAG_ROOT, proj, "index.txt")
-    
-    if not os.path.exists(index_file):
-        return f"O projeto '{proj}' ainda não foi indexado no RAG. Rode: brain-index <caminho> {proj}"
+    entities = load_json(ENTITIES_FILE)
 
-    with open(index_file, 'r', encoding='utf-8', errors='ignore') as f:
-        content = f.read()
+    if not entities:
+        return "⚠️ Índice de conhecimento vazio. Rode o comando 'bootstrap' no terminal para indexar o projeto via Aider OS."
+
+    term = query.lower()
     
-    lines = content.split('\n')
+    # Se só tivermos o bundle textual (sem parser ast rodado)
+    if _is_partial_index(entities):
+        bundle_file = _get_bundle_file(entities)
+        hits = _grep_in_bundle(bundle_file, term)
+        if not hits:
+            return f"Nenhuma ocorrência de '{query}' encontrada no bundle textual."
+        
+        output = f"⚠️ Resultados via busca textual no bundle (fallback) para '{query}':\n"
+        for line_num, line_content in hits:
+            output += f"L{line_num}: {line_content}\n"
+        return output
+
+    # Busca exata e estruturada no AST gerado pelo Aider OS
     results = []
-    for line in lines:
-        if query.lower() in line.lower():
-            results.append(line)
+    for e in entities:
+        if term in e.get("name", "").lower() or term in e.get("id", "").lower():
+            results.append(f"📍 {e.get('name')} ({e.get('type')})\n   Arquivo: {e.get('file')}:{e.get('line')}")
             
     if not results:
-        return f"Nada encontrado sobre '{query}' na memória do projeto '{proj}'."
+        return f"Nada encontrado sobre '{query}' na memória estruturada do projeto."
     
-    # Retorna as primeiras 30 linhas para dar um contexto melhor pro Aider
-    return f"### Resultados na memória do projeto '{proj}':\n" + "\n".join(results[:30])
+    return f"### Resultados Estruturais para '{query}':\n" + "\n".join(results)
 
 @mcp.tool()
 def get_project_map(project_name: str = "") -> str:
     """
-    Retorna a lista completa de caminhos de arquivos mapeados na estrutura do projeto.
-    Útil para a IA entender o esqueleto global sem ler o código.
+    Retorna a lista das principais entidades arquiteturais (classes, serviços, módulos) 
+    do projeto indexado, para a IA entender o esqueleto global sem ler todos os arquivos.
     """
-    proj = _discover_project_name(project_name)
-    map_file = os.path.join(RAG_ROOT, proj, "file_list.txt") # Ajustado de summary.md para file_list.txt
-    
-    if os.path.exists(map_file):
-        with open(map_file, 'r', encoding='utf-8', errors='ignore') as f:
-            return f"### Estrutura de Arquivos de '{proj}':\n" + f.read()
+    entities = load_json(ENTITIES_FILE)
+
+    if not entities:
+        return "⚠️ Mapa vazio. Rode o comando 'bootstrap' no terminal."
+
+    if _is_partial_index(entities):
+        return "⚠️ Mapa estrutural indisponível (apenas fallback de texto). Rode 'bootstrap' usando Compodoc/OpenAPI para extrair a estrutura real."
+
+    # Agrupar entidades por tipo para um overview elegante
+    overview = {}
+    for e in entities:
+        t = e.get("type", "unknown")
+        if t not in overview:
+            overview[t] = []
+        overview[t].append(f"{e.get('name')} -> {e.get('file')}")
+
+    output = "### Mapa Estrutural do Projeto:\n"
+    for t, items in overview.items():
+        output += f"\n## {t.upper()}\n"
+        output += "\n".join(f"- {i}" for i in items[:50]) # limitamos a 50 de cada tipo para não explodir
+        if len(items) > 50:
+            output += f"\n... (+ {len(items) - 50} itens)"
             
-    return f"Mapa da estrutura do projeto '{proj}' não encontrado em {map_file}."
+    return output
 
 if __name__ == "__main__":
     mcp.run()

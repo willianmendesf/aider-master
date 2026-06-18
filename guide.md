@@ -27,12 +27,6 @@ Você acabou de clonar o repositório ou o time decidiu instaurar o Aider OS no 
    ```
    O Aider OS não chamará o LLM. Ele rodará as ferramentas detectadas, normalizará a saída e criará um poderoso banco relacional local em `.ai/knowledge/entities.json` e `.ai/knowledge/graph.json`. O projeto agora está indexado.
 
-3. **(Opcional) Indexe o projeto no RAG**:
-   ```bash
-   brain-index /caminho/para/projeto nome-do-projeto
-   ```
-   Isso permite usar as ferramentas MCP `search_project_memory` e `get_project_map` para consultas rápidas.
-
 4. **(Opcional) Inicialize com Templates**:
    Se o projeto ainda não tem a estrutura `.ai/`, copie os templates da pasta `templates/aider-os/` para a raiz do seu projeto.
 
@@ -126,25 +120,7 @@ Você tem um problema e precisa encontrar a causa raiz.
 
 ---
 
-### Cenário 8: Usando o RAG para Projetos Antigos
-Você quer consultar rapidamente um projeto indexado anteriormente.
 
-1. **Indexar um Projeto no RAG**:
-   ```bash
-   brain-index /caminho/para/projeto meu-projeto
-   ```
-
-2. **Buscar no RAG (via CLI)**:
-   ```bash
-   python /dados/aider/rag/rag_cli.py search "AppointmentService" meu-projeto
-   ```
-
-3. **Ver a Estrutura do Projeto Indexado**:
-   ```bash
-   python /dados/aider/rag/rag_cli.py map meu-projeto
-   ```
-
----
 
 ### Cenário 9: Extrair Regras de Projeto Automaticamente
 Você entrou em um projeto novo e quer entender as regras de código e arquitetura.
