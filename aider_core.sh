@@ -639,6 +639,7 @@ code-review() {
         "${BASE_SKILLS[@]}"
         --read "$AIDER_GLOBAL_DIR/skills/governance-audit.md"
         --read "$AIDER_GLOBAL_DIR/skills/angular-patterns.md"
+        --read "$AIDER_GLOBAL_DIR/skills/clean-architecture.md"
         --read "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
         --read "$AIDER_GLOBAL_DIR/skills/security-audit.md"
     )
