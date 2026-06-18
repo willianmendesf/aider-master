@@ -443,81 +443,120 @@ def cmd_feature(args):
             print(f"⚠️ Nenhuma entidade associada à feature '{target}'.")
         return
 
+    # Identificar todas as entidades principais da feature via path heurístico ou nome
     feature_entities = []
     for e in entities:
-        features = [f.lower() for f in e.get("feature", [])]
-        if any(target in f for f in features) or target in e.get("name", "").lower():
+        file_path = e.get('file', '')
+        parts = file_path.replace("\\", "/").split("/")
+        feature_str = ""
+        if len(parts) > 1:
+            parent_dir = parts[-2]
+            if parent_dir in ("model", "models", "components", "services", "utils", "shared", "core", "interfaces", "pages", "logged"):
+                if len(parts) > 2:
+                    parent_dir = parts[-3]
+                    if parent_dir in ("pages", "logged"):
+                        if len(parts) > 3: parent_dir = parts[-4]
+            feature_str = parent_dir.lower()
+        
+        if target in feature_str or target in e.get("name", "").lower():
             feature_entities.append(e)
 
     if not feature_entities:
         print(f"⚠️ Nenhuma entidade associada à feature '{target}'.")
         sys.exit(0)
 
-    components = []
+    # Coletar dependências para o Fluxo
+    graph = load_json(GRAPH_FILE)
+    edges = graph.get("edges", [])
+    ent_by_id = {e.get("id"): e for e in entities}
+    
+    telas = []
     services = []
     models = []
-    endpoints = []
-    outros = []
     arquivos = set()
-
+    feature_ids = set()
+    
     for e in feature_entities:
         t = e.get("type", "").lower()
-        name = e.get("name", "")
-        if t == "component": components.append(name)
-        elif t == "service": services.append(name)
-        elif t in ("model", "interface"): models.append(name)
-        elif t == "endpoint": endpoints.append(name)
-        else: outros.append(name)
+        feature_ids.add(e.get("id"))
+        if t == "component": telas.append(e)
+        elif t == "service": services.append(e)
+        elif t in ("model", "interface", "class"): models.append(e)
         
-        if e.get("file"):
-            arquivos.add(e.get("file"))
+        if e.get("file"): arquivos.add(e.get("file"))
+            
+    reused_components = {}
+    external_services = {}
+    tela_deps = {}
+    
+    for tela in telas:
+        tela_id = tela.get("id")
+        deps = set()
+        for edge in edges:
+            if edge.get("from_node") == tela_id:
+                deps.add(edge.get("to_node"))
+        tela_deps[tela_id] = deps
+        
+        for d in deps:
+            d_ent = ent_by_id.get(d)
+            if not d_ent: continue
+            
+            dt = d_ent.get("type", "").lower()
+            if d not in feature_ids:
+                if dt in ("component", "directive"):
+                    reused_components[d] = d_ent
+                elif dt == "service":
+                    external_services[d] = d_ent
+                elif dt in ("model", "interface", "class"):
+                    models.append(d_ent)
+                    feature_ids.add(d)
+                    if d_ent.get("file"): arquivos.add(d_ent.get("file"))
 
-    total = len(feature_entities)
-    impacto = "MÉDIO"
-    if len(endpoints) > 0 or len(services) > 5:
-        impacto = "ALTO"
-    elif total < 4:
-        impacto = "BAIXO"
-
-    print("=======================================")
-    print(" 🎯 FEATURE IMPACT REPORT")
-    print("=======================================\n")
-    print(f"Feature:\n  {args[0].capitalize()}\n")
-    print(f"Arquivos:\n  {len(arquivos)}\n")
-
-    if components:
-        print("Componentes (UI):")
-        for c in sorted(components):
-            print(f"  - {c}")
+    print(f"FEATURE: {args[0].capitalize()}\n")
+    
+    if telas:
+        print("TELAS")
+        for t in sorted(telas, key=lambda x: x.get("name")):
+            print(f"- {t.get('name')}\n  {t.get('file')}")
         print("")
-
-    if services:
-        print("Serviços (Lógica/Integração):")
-        for s in sorted(services):
-            print(f"  - {s}")
+        
+    all_services = services + list(external_services.values())
+    if all_services:
+        print("SERVICES")
+        for s in sorted(all_services, key=lambda x: x.get("name")):
+            print(f"- {s.get('name')}")
         print("")
-
+        
     if models:
-        print("Models / Interfaces:")
-        for m in sorted(models):
-            print(f"  - {m}")
+        print("MODELS")
+        for m in sorted(models, key=lambda x: x.get("name")):
+            print(f"- {m.get('name')}")
         print("")
-
-    if endpoints:
-        print("Endpoints Relacionados:")
-        for ep in sorted(endpoints):
-            print(f"  - {ep}")
+        
+    if reused_components:
+        print("COMPONENTES REUTILIZADOS")
+        for c in sorted(reused_components.values(), key=lambda x: x.get("name")):
+            print(f"- {c.get('name')}")
         print("")
-
-    if outros:
-        print("Outros Elementos (Modules, etc):")
-        for o in sorted(outros):
-            print(f"  - {o}")
-        print("")
-
-    print(f"Impacto Geral da Feature:\n  {impacto}\n")
-    print("Motivo:")
-    print(f"  A feature engloba {len(components)} componentes, depende de {len(services)} serviços centrais e {len(endpoints)} endpoints.\n")
+        
+    print("FLUXO")
+    for tela in sorted(telas, key=lambda x: x.get("name")):
+        print(tela.get("name"))
+        tdeps = sorted(list(tela_deps.get(tela.get("id"), [])))
+        for i, d in enumerate(tdeps):
+            is_last = (i == len(tdeps) - 1)
+            prefix = " └── " if is_last else " ├── "
+            print(f"{prefix}{d}")
+    print("")
+    
+    print("ARQUIVOS RELEVANTES")
+    for i, f in enumerate(sorted(arquivos), 1):
+        # Exibe o basename em evidência e o path completo depois (opcional), ou só o path como o usuário sugeriu
+        basename = f.split("/")[-1] if "/" in f else f
+        print(f"{i}. {basename}")
+        
+    print(f"\nTOTAL DE CONTEXTO:\n{len(arquivos)} arquivos\n")
+    print("Copie estes caminhos e entregue ao Aider para um contexto cirúrgico perfeito.")
 
 def main():
     if len(sys.argv) < 2:

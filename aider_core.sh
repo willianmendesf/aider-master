@@ -489,19 +489,25 @@ impact() {
 }
 
 feature() {
-    if [ -z "$1" ]; then
-        echo "❌ ERRO: Uso: feature <Nome>"
+    if [ -z "$1" ] || [[ "$1" == -* ]]; then
+        echo "❌ ERRO: Uso: feature <Nome> [--ai | --report]"
         return 1
     fi
     local ALVO="$1"
     shift
-    local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
-    fi
     
-    echo "🧠 Montando contexto para a feature: $ALVO..."
+    local USE_AI=0
+    local modelo="default"
+    
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --ai|--report) USE_AI=1 ;;
+            *) modelo="$1" ;;
+        esac
+        shift
+    done
+    
+    echo "🧠 Montando contexto cirúrgico para a feature: $ALVO..."
     python3 "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$ALVO" > .ai/cache/feature_context.md
     
     if grep -q "⚠️ Nenhuma entidade" .ai/cache/feature_context.md; then
@@ -509,12 +515,13 @@ feature() {
         return 1
     fi
     
-    local SKILLS=(
-        "${BASE_SKILLS[@]}"
-    )
-    
-    echo "🤖 Gerando relatório da feature..."
-    agent "$modelo" "${SKILLS[@]}" --read ".ai/cache/feature_context.md" --message "Aja como Arquiteto de Software. Usando APENAS o contexto fornecido em .ai/cache/feature_context.md, gere um relatório detalhado da Feature '$ALVO', navegando no grafo para explicar o fluxo e o propósito. Formate em Markdown claro." "$@"
+    if [ "$USE_AI" -eq 1 ]; then
+        local SKILLS=("${BASE_SKILLS[@]}")
+        echo "🤖 Gerando relatório explicativo da feature via IA..."
+        agent "$modelo" "${SKILLS[@]}" --read ".ai/cache/feature_context.md" --message "Aja como Arquiteto de Software. Usando APENAS o contexto fornecido em .ai/cache/feature_context.md, gere um relatório detalhado da Feature '$ALVO', navegando no grafo para explicar o fluxo e o propósito. Formate em Markdown claro." "$@"
+    else
+        cat .ai/cache/feature_context.md
+    fi
 }
 
 # Comando para Convergir Código para o Golden Path
