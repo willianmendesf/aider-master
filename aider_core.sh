@@ -45,6 +45,18 @@ _next_plan_file() {
   echo "$name"
 }
 
+_next_review_file() {
+  mkdir -p .ai/reviews .aider
+
+  local count=1
+  if ls .ai/reviews/REVIEW-*.md 1>/dev/null 2>&1; then
+    count=$(( $(ls -1 .ai/reviews/REVIEW-*.md | wc -l) + 1 ))
+  fi
+
+  local name="REVIEW-$(printf "%03d" "$count")"
+  echo "$name"
+}
+
 _cleanup_ai_temps() {
     echo "🧹 Limpando artefatos temporários de IA..."
     rm -f ./.repomixignore
@@ -132,9 +144,9 @@ architect() {
     shift
 
     local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"
+        shift 2
     fi
 
     local SKILLS=(
@@ -158,9 +170,9 @@ design() {
     shift
 
     local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"
+        shift 2
     fi
 
     local SKILLS=(
@@ -267,24 +279,38 @@ plan() {
     
     local NOME_PLANO
     NOME_PLANO="$(_next_plan_file)"
+    local TMP_PLANO=".aider/${NOME_PLANO}.md"
     local PLANO_ARQUIVO=".ai/plans/${NOME_PLANO}.md"
-    touch "$PLANO_ARQUIVO"
+
+    # Preenche o esqueleto inicial
+    cat > "$TMP_PLANO" <<EOF
+# $NOME_PLANO
+
+## 1. Conhecimento e Evidências
+<!-- Preencha aqui as evidências encontradas -->
+
+## 6. Plano de Execução
+<!-- Preencha aqui as tarefas -->
+EOF
 
     local PLAN_PROMPT
-    PLAN_PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/prompts/plan.md")"
+    PLAN_PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/skills/prompts/plan.md")"
     PLAN_PROMPT="${PLAN_PROMPT//\{\{DEMANDA\}\}/$DEMANDA}"
-    PLAN_PROMPT="${PLAN_PROMPT//\{\{PLANO_ARQUIVO\}\}/$PLANO_ARQUIVO}"
+    PLAN_PROMPT="${PLAN_PROMPT//\{\{PLANO_ARQUIVO\}\}/$TMP_PLANO}"
     PLAN_PROMPT="${PLAN_PROMPT//\{\{NOME_PLANO\}\}/$NOME_PLANO}"
 
     # Gera o plano de forma autônoma sem prender o terminal do usuário em chat iterativo
     agent "$modelo" "${SKILLS[@]}" \
-        --file "$PLANO_ARQUIVO" \
+        --file "$TMP_PLANO" \
         --yes \
         --message "$PLAN_PROMPT"
 
     # Validação de Infraestrutura
-    if [ ! -s "$PLANO_ARQUIVO" ]; then
-        echo "❌ ERRO: O plano gerado está vazio. O modelo falhou em formatar o bloco de texto."
+    if [ -s "$TMP_PLANO" ]; then
+        mv "$TMP_PLANO" "$PLANO_ARQUIVO"
+    else
+        echo "❌ ERRO: O plano temporário gerado está vazio. O modelo falhou em formatar o bloco de texto."
+
         rm -f "$PLANO_ARQUIVO"
         return 1
     fi
@@ -450,7 +476,7 @@ dev() {
     fi
 
     local PROMPT
-    PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/prompts/dev.md")"
+    PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/skills/prompts/dev.md")"
 
     agent "$modelo" "${SKILLS[@]}" --file "$PLANO" --message "$PROMPT" "$@"
 }
@@ -458,9 +484,9 @@ dev() {
 # Modo Ask
 ask() {
     local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"
+        shift 2
     fi
     agent "$modelo" "${BASE_SKILLS[@]}" --chat-mode ask "$@"
 }
@@ -472,9 +498,9 @@ ask() {
 # Comando para Debug Avançado (Root Cause Analysis)
 debug() {
     local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"
+        shift 2
     fi
 
     local SKILLS=(
@@ -574,12 +600,51 @@ code-review() {
     [ -f ".ai/rules/testing.md" ] && SKILLS+=(--read ".ai/rules/testing.md")
 
     echo "⚖️ Iniciando Tribunal de Código (Code Review) em: $ALVO..."
+    
+    local NOME_REVIEW
+    NOME_REVIEW="$(_next_review_file)"
+    local TMP_REVIEW=".aider/${NOME_REVIEW}.md"
+    local REVIEW_ARQUIVO=".ai/reviews/${NOME_REVIEW}.md"
+
+    cat > "$TMP_REVIEW" <<EOF
+# $NOME_REVIEW
+
+## Veredito
+<!-- APROVADO | APROVADO COM RESSALVAS | REPROVADO -->
+
+## Score
+<!-- 0-100 -->
+
+## Bloqueadores
+<!-- Liste bloqueadores reais com arquivo e evidência -->
+
+## Divergências por Arquivo
+<!-- Liste as divergências -->
+
+## Refatorações Recomendadas
+<!-- Liste ações objetivas -->
+EOF
+
     local PROMPT
-    PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/prompts/code-review.md")"
+    PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/skills/prompts/code-review.md")"
     PROMPT="${PROMPT//\{\{ALVO\}\}/$ALVO}"
+    PROMPT="${PROMPT}
+
+Edite OBRIGATORIAMENTE o arquivo $TMP_REVIEW preenchendo o esqueleto."
 
     agent "$modelo" "${SKILLS[@]}" "${EVIDENCE_ARGS[@]}" \
+        --file "$TMP_REVIEW" \
+        --yes \
         --message "$PROMPT" "$@"
+
+    if [ -s "$TMP_REVIEW" ]; then
+        mv "$TMP_REVIEW" "$REVIEW_ARQUIVO"
+        echo "✅ Review salvo com sucesso em: $REVIEW_ARQUIVO"
+    else
+        echo "❌ Falha: O arquivo temporário de review ficou vazio."
+        rm -f "$TMP_REVIEW"
+        return 1
+    fi
 }
 
 # Comando para Revisão Operacional (Code Review Funcional)
@@ -588,9 +653,6 @@ review() {
     if [ "$1" == "--model" ] && [ -n "$2" ]; then
         modelo="$2"
         shift 2
-    elif [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
     fi
 
     local SKILLS=(
@@ -608,9 +670,9 @@ review() {
 # Modo Ask específico para refatoração
 ask-refactor() {
     local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"
+        shift 2
     fi
 
     local SKILLS=(
@@ -629,9 +691,9 @@ ask-refactor() {
 # Modo Ask específico para migração
 ask-migration() {
     local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"
+        shift 2
     fi
 
     local SKILLS=(
@@ -649,9 +711,9 @@ ask-migration() {
 # Modo Ask específico para empresas
 ask-enterprise() {
     local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"
+        shift 2
     fi
 
     local SKILLS=(
@@ -674,9 +736,9 @@ ask-enterprise() {
 # Modo Study (Ask sem Git e com as sub-skills base)
 study() {
     local modelo="default"
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"
+        shift 2
     fi
     agent "$modelo" "${BASE_SKILLS[@]}" --chat-mode ask --no-git "$@"
 }
@@ -960,9 +1022,9 @@ draft-rules() {
     local context_rows=4000
     local agent_args=()
 
-    if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
-        modelo="$1"
-        shift
+    if [ "$1" == "--model" ] && [ -n "$2" ]; then
+        modelo="$2"
+        shift 2
     fi
 
     while [[ "$#" -gt 0 ]]; do
