@@ -153,14 +153,34 @@ plan() {
     local DEMANDA="$1"
     shift
 
-    local modelo="default"
     local OPEN_AIDER=0
-    local USE_FEATURE_CONTEXT=0
+    local TARGET_FEATURE=""
+    local TARGET_REF=""
+    local TARGET_AREA=""
+    local IS_NEW_SCREEN=0
     
     while [[ "$#" -gt 0 ]]; do
         case $1 in
             --open) OPEN_AIDER=1 ;;
-            --feature) USE_FEATURE_CONTEXT=1 ;;
+            --feature) 
+                if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    TARGET_FEATURE="$2"
+                    shift
+                fi
+                ;;
+            --new-screen) IS_NEW_SCREEN=1 ;;
+            --ref) 
+                if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    TARGET_REF="$2"
+                    shift
+                fi
+                ;;
+            --area) 
+                if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    TARGET_AREA="$2"
+                    shift
+                fi
+                ;;
             --model) 
                 modelo="$2"
                 shift ;;
@@ -174,11 +194,21 @@ plan() {
         --read "$AIDER_GLOBAL_DIR/skills/planner.md"
     )
 
-    if [ "$USE_FEATURE_CONTEXT" -eq 1 ] && [ -s ".ai/cache/feature_context.md" ]; then
-        echo "🔗 Contexto tático da feature detectado. Injetando no plano..."
-        SKILLS+=(--read ".ai/cache/feature_context.md")
+    if [ -n "$TARGET_FEATURE" ]; then
+        echo "🔗 Montando contexto para a feature: $TARGET_FEATURE..."
+        python3 "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$TARGET_FEATURE" > .ai/cache/plan_context.md
+        SKILLS+=(--read ".ai/cache/plan_context.md")
+    elif [ "$IS_NEW_SCREEN" -eq 1 ] && [ -n "$TARGET_REF" ]; then
+        echo "🔗 Montando contexto de referência para a tela: $TARGET_REF..."
+        python3 "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$TARGET_REF" > .ai/cache/plan_context.md
+        SKILLS+=(--read ".ai/cache/plan_context.md")
+    elif [ "$IS_NEW_SCREEN" -eq 1 ] && [ -n "$TARGET_AREA" ]; then
+        echo "🔗 Buscando referências na área: $TARGET_AREA..."
+        mkdir -p .ai/cache
+        grep -i "/$TARGET_AREA/" .ai/knowledge/entities.json > .ai/cache/plan_context.md || echo "Nenhuma entidade encontrada para a área $TARGET_AREA" > .ai/cache/plan_context.md
+        SKILLS+=(--read ".ai/cache/plan_context.md")
     else
-        echo "🌐 Modo de Planejamento Global Ativo (isolado do contexto tático)."
+        echo "🌐 Modo de Planejamento Global Ativo (isolado do contexto tático). Pode gerar BLOQUEIO se faltar contexto."
     fi
 
     echo "🗺️ Atuando como Tech Lead para fatiar o Plano de Ação..."
@@ -274,9 +304,19 @@ DECISÃO-001
 - **Risco:** <BAIXO | MÉDIO | ALTO>
 - **Impacto Esperado:** <Áreas afetadas>
 
-## 5. Arquivos Relevantes
-[EVIDENCIADO] <Arquivo base que servirá de referência (Golden Path)>
-[DESCOBRIR] <Arquivo que o dev precisa mapear na fase de descoberta>
+## 5. Arquivos
+
+### Referências existentes
+[REFERENCIA] <arquivo existente usado como padrão>
+
+### Arquivos existentes a editar
+[EDITAR] <arquivo existente que será alterado>
+
+### A descobrir
+[DESCOBRIR] <mecanismo ou arquivo ainda não identificado>
+
+### Novos previstos
+[NOVO] <arquivo novo previsto>
 
 ## 6. Plano de Execução
 
@@ -340,31 +380,37 @@ verify() {
     sed -i '/## 8. Certificação de Auditoria/,$d' "$PLANO"
 
     local REPROVADO=0
-    # Extrai o caminho após "- Arquivo: "
-    local ARQUIVOS_EXTRAIDOS=$(grep -E "^- Arquivo: " "$PLANO" | sed 's/^- Arquivo: //')
+    local ARQUIVOS_REFERENCIA=$(grep -E "^\[REFERENCIA\]" "$PLANO" | sed 's/^\[REFERENCIA\][[:space:]]*//')
+    local ARQUIVOS_EDITAR=$(grep -E "^\[EDITAR\]" "$PLANO" | sed 's/^\[EDITAR\][[:space:]]*//')
+    
+    # Junta as duas listas removendo linhas vazias
+    local ARQUIVOS_EXTRAIDOS=$(echo -e "${ARQUIVOS_REFERENCIA}\n${ARQUIVOS_EDITAR}" | grep -v '^[[:space:]]*$')
 
     echo -e "\n## 8. Certificação de Auditoria" >> "$PLANO"
 
-    if [ -z "$ARQUIVOS_EXTRAIDOS" ]; then
-        echo "- **VERIFY:** REPROVADO" >> "$PLANO"
-        echo "- **Motivos:** Nenhuma evidência de arquivo encontrada no plano." >> "$PLANO"
-        echo "❌ VERIFY REPROVADO: Nenhum arquivo listado para auditoria."
-        return 1
+    local MOTIVOS=""
+    if echo "$ARQUIVOS_EXTRAIDOS" | grep -qE "<.*>|\(a descobrir\)|possível"; then
+        REPROVADO=1
+        MOTIVOS="${MOTIVOS}\n- Arquivo com placeholder inválido detectado."
+        echo "   ❌ Falha: Placeholder detectado em arquivo a auditar"
     fi
 
-    local MOTIVOS=""
-    while IFS= read -r arquivo; do
-        arquivo=$(echo "$arquivo" | tr -d '\r')
-        if [ -n "$arquivo" ]; then
-            if [ ! -e "$arquivo" ]; then
-                REPROVADO=1
-                MOTIVOS="${MOTIVOS}\n- Arquivo inexistente: $arquivo"
-                echo "   ❌ Falha: $arquivo (não existe)"
-            else
-                echo "   ✅ OK: $arquivo"
+    if [ -n "$ARQUIVOS_EXTRAIDOS" ]; then
+        while IFS= read -r arquivo; do
+            arquivo=$(echo "$arquivo" | tr -d '\r')
+            if [ -n "$arquivo" ]; then
+                if [ ! -f "$arquivo" ]; then
+                    REPROVADO=1
+                    MOTIVOS="${MOTIVOS}\n- Arquivo inexistente ou não regular: $arquivo"
+                    echo "   ❌ Falha: $arquivo (não é arquivo válido)"
+                else
+                    echo "   ✅ OK: $arquivo"
+                fi
             fi
-        fi
-    done <<< "$ARQUIVOS_EXTRAIDOS"
+        done <<< "$ARQUIVOS_EXTRAIDOS"
+    else
+        echo "   ⚠️ Nenhum arquivo de referência ou edição para validar."
+    fi
 
     if [ $REPROVADO -eq 1 ]; then
         echo "- **VERIFY:** REPROVADO" >> "$PLANO"
@@ -420,6 +466,37 @@ dev() {
         --read "$AIDER_GLOBAL_DIR/skills/dev-golden-path.md"
         --read "$AIDER_GLOBAL_DIR/skills/angular-patterns.md"
     )
+
+    local ARQUIVOS_REFERENCIA=$(grep -E "^\[REFERENCIA\]" "$PLANO" | sed 's/^\[REFERENCIA\][[:space:]]*//')
+    local ARQUIVOS_EDITAR=$(grep -E "^\[EDITAR\]" "$PLANO" | sed 's/^\[EDITAR\][[:space:]]*//')
+    local ARQUIVOS_NOVOS=$(grep -E "^\[NOVO\]" "$PLANO" | sed 's/^\[NOVO\][[:space:]]*//')
+
+    if [ -n "$ARQUIVOS_REFERENCIA" ]; then
+        while IFS= read -r arquivo; do
+            arquivo=$(echo "$arquivo" | tr -d '\r')
+            if [ -n "$arquivo" ] && [ -f "$arquivo" ]; then
+                SKILLS+=(--read "$arquivo")
+            fi
+        done <<< "$ARQUIVOS_REFERENCIA"
+    fi
+
+    if [ -n "$ARQUIVOS_EDITAR" ]; then
+        while IFS= read -r arquivo; do
+            arquivo=$(echo "$arquivo" | tr -d '\r')
+            if [ -n "$arquivo" ] && [ -f "$arquivo" ]; then
+                SKILLS+=(--file "$arquivo")
+            fi
+        done <<< "$ARQUIVOS_EDITAR"
+    fi
+
+    if [ -n "$ARQUIVOS_NOVOS" ]; then
+        while IFS= read -r arquivo; do
+            arquivo=$(echo "$arquivo" | tr -d '\r')
+            if [ -n "$arquivo" ] && [[ "$arquivo" != *"<"* ]] && [[ "$arquivo" != *"("* ]]; then
+                SKILLS+=(--file "$arquivo")
+            fi
+        done <<< "$ARQUIVOS_NOVOS"
+    fi
 
     echo "🔨 Iniciando Motor de Execução Seguro baseado em: $PLANO..."
     
