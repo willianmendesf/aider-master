@@ -192,16 +192,22 @@ plan() {
     local PLANO_ARQUIVO=".ai/plans/${NOME_PLANO}.md"
     touch "$PLANO_ARQUIVO"
 
-    local PLAN_PROMPT="Atue como Tech Lead Sênior. Demanda: $DEMANDA.
+    local PLAN_PROMPT="Atue como Tech Lead Sênior do Projeto. Demanda: $DEMANDA.
+SEU ESCPO É GLOBAL. Você é responsável por definir 'Qual é a forma correta de implementar isso NESTE projeto?', baseando-se na arquitetura geral, regras e padrões.
 SEU OBJETIVO É CRIAR UM PLANO DE AÇÃO ARQUITETURAL FUNDAMENTADO EM EVIDÊNCIAS.
 NÃO GERE CÓDIGO FONTE. 
 NÃO INVENTE arquivos que você não tem certeza que existem (use a tag [DESCOBRIR]).
 NÃO CHUTE componentes similares se não tiver certeza (diga que precisa descobrir).
 
-Analise o repositório, o repo-map e o contexto injetado (se houver) para embasar o plano.
+Analise o repositório, o repo-map e o contexto da feature injetado (se houver e se for aplicável à demanda). Se a demanda for estrutural ou global, ignore o contexto restrito da feature.
 Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdown:
 
 # $NOME_PLANO
+
+**Fontes Utilizadas:**
+- [x] Conhecimento Global (Repo Map / Estrutura do Projeto)
+- [x] Diretrizes e Regras (.ai/rules)
+- [ ] Contexto Tático Específico (feature_context.md - marque com 'x' APENAS se a demanda for focada em uma feature e utilizou o arquivo)
 
 **Objetivo:**
 <Objetivo direto e claro da demanda>
@@ -218,7 +224,7 @@ Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdo
 
 **Risco:**
 <BAIXO | MÉDIO | ALTO>
-Motivo: <Justifique o risco baseado no acoplamento ou raio de quebra>
+Motivo: <Justifique o risco baseado no acoplamento, raio de quebra ou impacto estrutural>
 
 **Arquivos Impactados:**
 [NOVO] caminho/completo/para/novo/arquivo.ts
