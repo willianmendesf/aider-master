@@ -171,7 +171,7 @@ plan() {
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
-        --read "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
+        --read "$AIDER_GLOBAL_DIR/skills/planner.md"
     )
 
     if [ "$USE_FEATURE_CONTEXT" -eq 1 ] && [ -s ".ai/cache/feature_context.md" ]; then
@@ -214,11 +214,16 @@ REGRAS OBRIGATÓRIAS ADICIONAIS:
 1. PLANEJAMENTO ORIENTADO A CAPABILITY: O plano deve descrever CAPABILITIES e TAREFAS ABSTRATAS. O plano NÃO deve descrever: nomes de classes, nomes de componentes, nomes de métodos, assinaturas ou estruturas de implementação, exceto quando estes elementos forem explicitamente evidenciados no repositório. O executor decide a implementação; o planner define o trabalho.
 2. PROCESSO OBRIGATÓRIO DE DESCOBERTA E AUTONOMIA: Antes de criar qualquer LACUNA ou [DESCOBRIR], você deve exaurir as fontes de evidência disponíveis na seguinte ordem: 1. Arquivos enviados, 2. Arquivos de contexto automático, 3. Repo-map, 4. Regras do projeto, 5. Contexto tático, 6. Evidências já encontradas. É proibido declarar 'não encontrado' ou 'desconhecido' sem informar quais fontes foram consultadas e por quê. Nunca solicite arquivos ao usuário.
 3. FONTES DE EVIDÊNCIA E REGRA DE PROXIMIDADE: Para cada demanda, busque evidências nos diretórios mais próximos ao alvo. Avalie a relevância: ALTA (mesmo diretório, componentes irmãos, mesma feature), MÉDIA (mesmo módulo, mesma camada), BAIXA (serviços genéricos, interfaces distantes). Nunca utilize evidências de baixa relevância se houver evidências de maior relevância não analisadas.
-4. REGRA DE EVIDÊNCIA FORTE: Uma decisão arquitetural somente pode ser emitida quando existir evidência direta (arquivos do mesmo diretório da feature, componentes irmãos, arquivos explicitamente relacionados ao fluxo solicitado, configurações observadas diretamente). Não são suficientes: serviços genéricos, utilitários, convenções presumidas da tecnologia, conhecimento prévio do modelo. Se não existir evidência direta: NÃO crie DECISÃO. Crie HIPÓTESE ou LACUNA.
-5. REGRA DE PAPEL (SEM VERBOS DE IMPLEMENTAÇÃO): O Planejador não descreve implementação. É proibido utilizar verbos como: 'criar', 'implementar', 'codificar', 'registrar', 'alterar', 'compilar' ou 'executar' nas tarefas do plano. Substitua por: 'identificar', 'mapear', 'analisar', 'validar', 'descobrir', 'documentar', 'definir estratégia', 'levantar evidências'. O plano deve permanecer válido mesmo sem conhecer a tecnologia utilizada.
-6. LINGUAGEM SECA E DIRETA: Não expanda com benefícios ou contextos organizacionais (equipe, aprovações).
-7. CRITÉRIOS DE ACEITE TESTÁVEIS: Use fatos concretos ('rota acessível', 'interface carregada sem erros').
-8. PROPORCIONALIDADE: Demandas simples exigem checklist curto.
+4. PROCESSO DE COLETA DE EVIDÊNCIAS (MÍNIMO 3): Antes de escrever qualquer seção do plano, execute obrigatoriamente a seguinte investigação:
+   - PASSO 1: Localize o diretório alvo mais próximo da demanda.
+   - PASSO 2: Inspecione arquivos irmãos da feature solicitada.
+   - PASSO 3: Inspecione arquivos de roteamento, registro, bootstrap ou composição relacionados ao alvo.
+   - PASSO 4: Identifique pelo menos 3 evidências concretas. Uma evidência concreta obrigatoriamente deve apontar: arquivo real, caminho completo e existente no repositório. NÃO SÃO ACEITOS como evidência da feature: diretórios, módulos genéricos, project-rules.md, repo-map, shared/*, utilitários, serviços globais. Se menos de 3 evidências concretas reais forem encontradas: NÃO emita DECISÃO, crie apenas LACUNAS.
+5. REGRA DE EVIDÊNCIA FORTE: Uma decisão arquitetural somente pode ser emitida quando existir evidência direta (conforme PASSO 4). Não são suficientes: convenções presumidas da tecnologia ou conhecimento prévio do modelo. Se não existir evidência direta: NÃO crie DECISÃO. Crie HIPÓTESE ou LACUNA.
+6. REGRA DE PAPEL (SEM VERBOS DE IMPLEMENTAÇÃO): O Planejador não descreve implementação. É proibido utilizar verbos como: 'criar', 'implementar', 'codificar', 'registrar', 'alterar', 'compilar' ou 'executar' nas tarefas do plano. Substitua por: 'identificar', 'mapear', 'analisar', 'validar', 'descobrir', 'documentar', 'definir estratégia', 'levantar evidências'. O plano deve permanecer válido mesmo sem conhecer a tecnologia utilizada.
+7. LINGUAGEM SECA E DIRETA: Não expanda com benefícios ou contextos organizacionais (equipe, aprovações).
+8. CRITÉRIOS DE ACEITE TESTÁVEIS: Use fatos concretos ('rota acessível', 'interface carregada sem erros').
+9. PROPORCIONALIDADE: Demandas simples exigem checklist curto.
 
 Analise o repositório, o repo-map e o contexto injetado (se ativado).
 Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdown:
@@ -226,15 +231,15 @@ Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdo
 # $NOME_PLANO
 
 **Objetivo:**
-<O que será feito e por que>
+<Descrição objetiva da demanda recebida. Não adicionar benefícios, justificativas ou motivações não evidenciadas.>
 
 ## 1. Conhecimento e Evidências
 
 **Evidências Observadas no Projeto:**
 EVID-001
 - Arquivo: <Caminho absoluto do arquivo real encontrado - SÓ ARQUIVOS RELEVANTES DE ALTA/MÉDIA PROXIMIDADE>
-- Observação: <Fato observado>
-- Conclusão: <O que o fato significa>
+- Trecho Evidenciado: <Código ou configuração exata encontrada no arquivo provando o fato>
+- Impacto: <O que o trecho provado significa para a demanda atual>
 - Relevância: <ALTA | MÉDIA | BAIXA>
 - Confiança: <100% (evidenciado) ou % menor (inferido)>
 
@@ -248,6 +253,8 @@ LACUNA-001
 - Próxima ação: <O que o executor deve fazer na fase de descoberta para resolver a lacuna>
 
 ## 3. Decisões Arquiteturais
+
+<Somente criar esta seção se existirem pelo menos 3 evidências diretas e concretas. Caso contrário, escreva: 'Nenhuma decisão arquitetural pôde ser emitida com segurança.'>
 
 DECISÃO-001
 - O Que: <Decisão tomada com base exclusiva em evidências reais>
@@ -782,7 +789,7 @@ draft-rules() {
     done
 
     echo "========================================================"
-    echo "🤖 MODO EXTRATOR DE REGRAS INICIADO (Linhas: $context_rows)"
+    echo "🤖 MODO EXTRATOR DE REGRAS INICIADO (Linhas: $context_rows) mude isso usando: --context-rows <linhas>"
     echo "========================================================"
     
     _init_ai_workspace
