@@ -83,70 +83,70 @@ A dor clássica: "Se eu alterar a assinatura do `funcaoImportante()`, quais tela
 
 ---
 
-### Cenário 5: Desenvolvendo uma Feature Baseada no Legado
-Você precisa trabalhar na feature "xyz". Em vez de adicionar arquivos manualmente, o Aider OS faz isso para você.
+### Cenário 5: Desenvolvimento com Planejamento Estruturado
+Há duas formas principais de planejar e implementar features com o Aider OS: **baseada em feature legada** ou **greenfield (projeto novo)**.
 
-1. **Ver o contexto cirúrgico (sem IA)**:
+---
+
+#### Workflow 1: Baseado em Feature Legada (Contexto Cirúrgico)
+Use este fluxo quando quiser criar algo novo baseado em uma feature existente como referência.
+1. **Primeiro, mapeie a feature de referência**:
    ```bash
    feature xyz
    ```
-   Mostra o ponto de entrada, telas principais, services (incluindo compartilhados), models, endpoints, componentes reutilizados, fluxo principal e lista de todos os arquivos relevantes.
-
-2. **Gerar um relatório explicativo via IA**:
+   Mostra o ponto de entrada, telas principais, services, models, fluxo e arquivos relevantes (armazena o contexto em `.ai/cache/feature_context.md`).
+2. **Depois, planeje usando a feature como referência**:
    ```bash
-   feature xyz --ai
+   plan "criar uma nova tela Hello World usando xyz como referência estrutural" --feature
    ```
-   Ou use `--report` (alias para `--ai`).
-
-3. **Abrir diretamente no Aider com contexto completo + onboarding automático**:
+   O `--feature` injeta o contexto tático da feature no plano.
+3. **Valide o plano gerado**:
    ```bash
-   feature xyz --open
+   verify .ai/plans/PLAN-XXX.md
    ```
-   Isso:
-   - Abre o Aider com **todos os arquivos relevantes carregados** (incluindo reused_components e external_services como `service-y.ts` ou `service-z.ts`)
-   - Automaticamente dispara um onboarding que pede para a IA analisar a feature e explicar:
-     1. Objetivo da feature
-     2. Fluxo principal
-     3. APIs consumidas
-     4. Models utilizados
-     5. Arquivos mais importantes
-     6. Pontos de extensão
-     7. Riscos de alteração
-     - Sem escrever código!
-   
-   Exemplo de arquivos carregados:
-   - `component-a.ts`
-   - `model-b.ts`
-   - `model-c.ts`
-   - `interface-d.ts`
-   - `component-e.ts`
-   - `component-f.ts`
-   - `service-y.ts`
-   - `service-z.ts`
-   - E as regras (`project-rules.md`, `clean-code.md`).
-
-   Depois do onboarding automático, você pode simplesmente conversar diretamente com a IA!
-   Exemplos de perguntas:
-   - Onde eu preciso mexer para adicionar um novo campo "priority" no model?
-   - Quero adicionar um botão para duplicar um item existente.
-
-4. **Projete a Solução (Decisão Tática)**:
+   Verifica se todos os arquivos listados nas evidências existem e adiciona uma certificação de auditoria.
+4. **Execute o plano**:
    ```bash
-   design "Nova tela de consulta de items na feature XYZ"
+   dev .ai/plans/PLAN-XXX.md
    ```
-   A IA atua como System Design (decisão tática local) para estruturar uma solução, descrevendo: arquitetura dos componentes, fluxo principal, serviços que serão usados, sem gerar código e sem gerar um ADR (o `architect` é para mudanças estruturais grandes, o `design` é para tarefas táticas).
 
-5. **Planeje a Mudança como um Tech Lead (se precisar de plano formal)**:
-   ```bash
-   plan "Adicionar regra de desconto na Nova Feature XYZ"
-   ```
-   A IA fatiará a feature em pequenas tarefas de código num arquivo `PLAN-001.md`.
+---
 
-6. **Programe as Tarefas (O Método Guiado)**:
+#### Workflow 2: Greenfield Puro (Sem Feature de Referência)
+Use este fluxo quando for criar algo completamente novo.
+1. **Primeiro, projete a solução (decisão tática)**:
    ```bash
-   dev .ai/plans/PLAN-001.md
+   design "criar tela Hello World na área logged"
    ```
-   A IA executará o plano de forma focada e cega a distrações.
+   A IA atua como System Design local para estruturar a solução (sem código, sem ADR).
+2. **Depois, planeje a implementação do design**:
+   ```bash
+   plan "implementar a tela definida no design doc"
+   ```
+3. **Valide o plano**:
+   ```bash
+   verify .ai/plans/PLAN-XXX.md
+   ```
+4. **Execute o plano**:
+   ```bash
+   dev .ai/plans/PLAN-XXX.md
+   ```
+
+---
+
+#### Outras Opções do Comando `feature`
+Além do modo padrão (mostrar contexto cirúrgico), o `feature` tem outras opções:
+- **`--ai` ou `--report`**: Usa a IA para gerar um relatório explicativo da feature.
+- **`--open`**: Abre o Aider diretamente com todos os arquivos relevantes da feature carregados, e dispara um onboarding automático que analisa a feature.
+
+---
+
+#### Regra Crítica sobre `plan`
+Não use `plan` sozinho para descobrir contexto! Ele só funciona bem com:
+- `--feature` (contexto de feature legada)
+- Um design doc previamente criado
+- Arquivos/referências explícitas
+- Sem isso, ele atua em modo global (planejamento abstrato).
 
 ---
 

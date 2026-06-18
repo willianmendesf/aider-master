@@ -99,7 +99,8 @@ Esta tabela serve como seu documento de consulta rápida para o dia a dia, orden
 | :--- | :--- |
 | `architect "<problema>"` | **[Mudança Estrutural]** Ex: `architect "Migrar Context API para Redux"`. A IA não escreve código, apenas analisa trade-offs e gera arquivos oficiais `ADR-001.md`. |
 | `design "<demanda>"` | **[Mudança Tática]** Ex: `design "Tela de login"`. Desenha a estrutura de componentes, eventos e fluxos. |
-| `plan "<demanda>"` | **[Tech Lead]** Pega uma demanda e fatia o trabalho em um checklist executável numerado (ex: `.ai/plans/PLAN-001.md`). |
+| `plan "<demanda>" [--feature] [--open] [--model <modelo>]` | **[Tech Lead]** Pega uma demanda e fatia o trabalho em um checklist executável numerado (ex: `.ai/plans/PLAN-001.md`).<br>- **`--feature`**: Injetar o contexto tático da feature (gerado por `feature <nome>` no `.ai/cache/feature_context.md`).<br>- **Regra crítica**: Não use `plan` sozinho para descobrir contexto. Sem `--feature`, `--open` ou referências explícitas, ele atua em modo global (planejamento abstrato). |
+| `verify <caminho_do_plano>` | **[Auditoria Determinística]** Valida o plano: verifica se todos os arquivos listados na seção "Evidências Observadas" existem no disco, adiciona uma "Certificação de Auditoria" no plano (APROVADO/REPROVADO). |
 
 ### 4. 🔨 Execução e Qualidade (Desenvolvimento Real)
 | Comando | Descrição Completa e Casos de Uso |
