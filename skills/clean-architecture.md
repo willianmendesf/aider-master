@@ -1,69 +1,140 @@
 ---
-name: Clean Architecture Audit
-description: Avalia separação de responsabilidades, dependências e camadas.
+name: Clean Architecture
+description: Avalia separação de camadas, responsabilidade arquitetural, dependências e limites entre UI, aplicação, domínio e infraestrutura.
 ---
 
 # Objetivo
 
-Auditar se o código respeita separação de camadas e responsabilidades.
+Garantir que o código esteja organizado em camadas claras, com responsabilidades bem separadas e dependências previsíveis.
 
-# Avaliar obrigatoriamente
+Clean Architecture aqui significa:
 
-## Component
+- Component não vira service
+- Service não vira component
+- UI não contém regra de negócio pesada
+- Domínio não depende de detalhe visual
+- Infraestrutura não contamina a tela
+- Código novo respeita padrões existentes
+
+---
+
+# Camadas
+
+## UI / Component
+
 Deve conter apenas:
+
 - estado de tela
-- handlers de UI
+- eventos de usuário
+- bindings
 - orquestração simples
-
-Não deve concentrar:
-- regra de negócio
-- transformação pesada
-- montagem complexa de payload
-- controle complexo de modal
-- lógica de download
-- parsing/manual formatting repetido
-
-## Service
-Deve conter:
-- comunicação com API
-- montagem de request
-- adaptação simples de resposta
+- chamadas para services
+- adaptação mínima para exibição
 
 Não deve conter:
+
+- regra de negócio complexa
+- montagem pesada de payload
+- parsing repetido
+- transformação pesada de resposta
+- lógica de download complexa
+- lógica de modal complexa
+- regras de autorização
+- regra de domínio
+- acesso direto a API client
+
+Critérios de reprovação:
+
+- component com muitas responsabilidades
+- component com método gigante
+- component decidindo fluxo de negócio
+- component manipulando payload de API de forma complexa
+- component concentrando form, tabela, modal, download e integração
+
+---
+
+## Service de Feature
+
+Deve conter:
+
+- comunicação com API
+- montagem de request
+- adaptação simples de response
+- métodos específicos da feature
+
+Não deve conter:
+
 - estado visual
-- regra de apresentação
-- lógica de componente
+- texto de modal
+- regra de template
+- manipulação de DOM
+- lógica de apresentação
+
+Critérios de reprovação:
+
+- service misturado com UI
+- duplicação excessiva de HttpParams
+- métodos públicos sem propósito claro
+- service genérico demais
+
+---
+
+## Domain / Models / DTOs
+
+Devem representar:
+
+- contratos
+- tipos
+- requests
+- responses
+- entidades da feature
+
+Não devem conter:
+
+- lógica visual
+- dependência de componente
+- dependência de framework de UI
+
+Critérios de reprovação:
+
+- model usado como depósito genérico
+- any
+- DTO duplicado sem necessidade
+- contrato alterado sem evidência
+
+---
 
 ## Utils / Helpers
-Usar quando houver:
-- formatação reutilizável
-- validação pura
+
+Usar para:
+
+- funções puras
 - parsing
-- montagem repetitiva de parâmetros
+- formatação
+- validação reutilizável
+- transformação sem estado
 
-# Classificações
+Não usar para:
 
-## Bloqueador
-- Componente com regra de negócio crítica
-- API client/endpoints alterados sem evidência
-- lógica de domínio duplicada em múltiplos lugares
-- subscribe sem ciclo de vida controlado
+- regra de negócio grande
+- dependência de service
+- dependência de component
+- lógica contextual demais
 
-## Warning
-- método longo
-- componente grande
-- service repetitivo
-- modal acoplado demais
-- template com lógica excessiva
+Critérios de reprovação:
 
-# Saída obrigatória
+- helper genérico demais
+- função utilitária com regra específica escondida
+- duplicação de util existente
 
-Para cada item:
+---
 
-- Camada:
-- Arquivo:
-- Evidência:
-- Violação:
-- Risco:
-- Refatoração recomendada:
-- O que preservar:
+# Direção de Dependência
+
+Permitido:
+
+```text
+Component -> Service -> ApiClient
+Component -> Utils
+Service -> Models/DTOs
+Service -> ApiClient
