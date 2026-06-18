@@ -993,7 +993,7 @@ standardize() {
     local CONTEXT_ARGS=(--read ".ai/cache/standardize-report.md")
 
     if [ "$FLAG" == "--plan" ]; then
-        mkdir -p .ai/plans
+        mkdir -p .ai/plans .aider
         local PROXIMO_NUM=1
         if ls .ai/plans/PLAN-*.md 1> /dev/null 2>&1; then
             PROXIMO_NUM=$(( $(ls -1 .ai/plans/PLAN-*.md | wc -l) + 1 ))
@@ -1001,11 +1001,13 @@ standardize() {
         
         local NOME_PLANO="PLAN-$(printf "%03d" $PROXIMO_NUM)"
         local PLANO_ARQUIVO=".ai/plans/${NOME_PLANO}.md"
-        touch "$PLANO_ARQUIVO"
+        local TMP_PLANO=".aider/${NOME_PLANO}.standardize.md"
+        
+        touch "$TMP_PLANO"
 
         local MENSAGEM="Você recebeu .ai/cache/standardize-report.md gerado por script determinístico.
 
-Crie um plano rastreável em $PLANO_ARQUIVO.
+Crie um plano rastreável em $TMP_PLANO.
 
 Regras:
 - Use os IDs STD-001, STD-002 etc.
@@ -1030,8 +1032,16 @@ Formato obrigatório:
 
 [ ] TASK-002 — Resolver STD-002
 ..."
-        echo "📏 Planejando Padronização em $ALVO (Arquivo: $PLANO_ARQUIVO)..."
-        agent "$modelo" "${SKILLS[@]}" "${CONTEXT_ARGS[@]}" --file "$PLANO_ARQUIVO" --yes --message "$MENSAGEM" "$@"
+        echo "📏 Planejando Padronização em $ALVO (Gerando rascunho em $TMP_PLANO)..."
+        agent "$modelo" "${SKILLS[@]}" "${CONTEXT_ARGS[@]}" --file "$TMP_PLANO" --yes --message "$MENSAGEM" "$@"
+        
+        if [ -s "$TMP_PLANO" ]; then
+            mv "$TMP_PLANO" "$PLANO_ARQUIVO"
+            echo "✅ Plano movido com sucesso. Gerado em: $PLANO_ARQUIVO"
+        else
+            echo "❌ Falha: plano temporário vazio ou não gerado."
+            return 1
+        fi
     elif [ "$FLAG" == "--fix" ]; then
         local MENSAGEM="Atue como Standardizer. Você recebeu um relatório factual gerado por script determinístico (em standardize-report.md). Sua tarefa: Analisar e EXECUTAR as adequações no código do alvo para convergir estritamente aos padrões documentados no laudo."
         if [ -f "$ALVO" ]; then
