@@ -157,11 +157,13 @@ def cmd_impact(args):
 
     ent_by_id = {e.get("id"): e for e in entities}
 
+    # Dependências (Usa)
     dependencies = set()
     for edge in edges:
         if edge.get("from_node") == target_id:
             dependencies.add(edge.get("to_node"))
 
+    # Consumidores (Usado por)
     direct_dependents = set()
     for edge in edges:
         if edge.get("to_node") == target_id:
@@ -179,38 +181,73 @@ def cmd_impact(args):
                     queue.append(from_n)
     
     indirect_dependents = visited - direct_dependents
-    all_affected = visited
     
+    # Classificar Dependências
+    dep_services = []
+    dep_components = []
+    dep_models = []
+    dep_utils = []
+    dep_endpoints = []
+
+    for d in dependencies:
+        e = ent_by_id.get(d)
+        if not e:
+            continue
+        t = e.get("type", "").lower()
+        name = e.get("name", d)
+        if t == "service": dep_services.append(name)
+        elif t in ("component", "directive"): dep_components.append(name)
+        elif t in ("model", "interface", "class"): dep_models.append(name)
+        elif t == "endpoint": dep_endpoints.append(name)
+        else: dep_utils.append(name)
+
+    # Classificar Consumidores
+    cons_services = []
+    cons_components = []
+    cons_routes_utils = []
     endpoints_afetados = []
-    telas_afetadas = []
-    models_afetados = []
-    arquivos_afetados = set()
-
-    for dep in all_affected:
-        ent = ent_by_id.get(dep)
-        if ent:
-            t = ent.get("type", "").lower()
-            name = ent.get("name", dep)
-            if t == "endpoint": endpoints_afetados.append(name)
-            elif t == "component": telas_afetadas.append(name)
-            elif t in ("model", "interface"): models_afetados.append(name)
-            
-            if ent.get("file"):
-                arquivos_afetados.add(ent.get("file"))
     
-    if target_ent and target_ent.get("file"):
-        arquivos_afetados.add(target_ent.get("file"))
+    for c in visited:
+        if c == target_id:
+            continue
+        
+        e = ent_by_id.get(c)
+        if not e: continue
+        t = e.get("type", "").lower()
+        name = e.get("name", c)
+        
+        # Filtro de sanidade: model não deveria ser consumidor, geralmente é falso positivo
+        if t in ("model", "interface", "class"):
+            continue
+            
+        if t == "service": cons_services.append(name)
+        elif t == "component": cons_components.append(name)
+        elif t == "endpoint": endpoints_afetados.append(name)
+        else: cons_routes_utils.append(name)
 
-    num_dependents = len(all_affected)
+    num_dependents = len(visited)
     score = "BAIXO"
-    if endpoints_afetados or num_dependents > 10:
+    justificativas = []
+
+    if endpoints_afetados:
         score = "CRÍTICO"
+        justificativas.append(f"Atinge diretamente {len(endpoints_afetados)} endpoint(s).")
+    if num_dependents > 10:
+        score = "CRÍTICO"
+        justificativas.append(f"Alto número de dependentes na cadeia ({num_dependents}).")
     elif num_dependents >= 6:
-        score = "ALTO"
-    elif num_dependents >= 2:
-        score = "MÉDIO"
-    else:
-        score = "BAIXO"
+        if score == "BAIXO": score = "ALTO"
+        justificativas.append(f"Impacta {num_dependents} consumidores (6 ou mais).")
+    elif num_dependents >= 1:
+        if score == "BAIXO": score = "MÉDIO"
+        justificativas.append(f"{len(direct_dependents)} consumidor(es) direto(s) e {len(indirect_dependents)} indireto(s).")
+    
+    if target_ent and target_ent.get("type", "").lower() == "model":
+        justificativas.append("Alterações em Models/Interfaces costumam gerar efeitos cascata em tipagens.")
+        if score in ("BAIXO", "MÉDIO"): score = "ALTO"
+
+    if not justificativas:
+        justificativas.append("Componente folha ou isolado. Nenhum consumidor principal identificado.")
 
     print("=======================================")
     print(" 💥 IMPACT REPORT")
@@ -222,38 +259,42 @@ def cmd_impact(args):
         print(f"Arquivo:\n  {target_ent.get('file')}\n")
 
     if dependencies:
-        print("Dependências Diretas (Usa):")
-        for d in sorted(dependencies):
-            print(f"  - {d}")
+        print("Dependências (Usa):\n")
+        if dep_services:
+            print("  Services:")
+            for s in sorted(dep_services): print(f"    - {s}")
+        if dep_components:
+            print("  Components:")
+            for c in sorted(dep_components): print(f"    - {c}")
+        if dep_models:
+            print("  Models:")
+            for m in sorted(dep_models): print(f"    - {m}")
+        if dep_endpoints:
+            print("  Endpoints:")
+            for ep in sorted(dep_endpoints): print(f"    - {ep}")
+        if dep_utils:
+            print("  Utilities/Outros:")
+            for u in sorted(dep_utils): print(f"    - {u}")
         print("")
 
-    if direct_dependents:
+    consumidores_reais = cons_components + cons_services + cons_routes_utils
+    if consumidores_reais:
         print("Consumidores (Usado por):")
-        for d in sorted(direct_dependents):
-            print(f"  - {d}")
+        for c in sorted(consumidores_reais):
+            print(f"  - {c}")
         print("")
 
     if endpoints_afetados:
-        print("Endpoints Relacionados:")
+        print("Endpoints Afetados:")
         for ep in sorted(endpoints_afetados):
             print(f"  - {ep}")
         print("")
-        
-    if models_afetados:
-        print("Models / Interfaces Utilizadas:")
-        for m in sorted(models_afetados):
-            print(f"  - {m}")
-        print("")
 
-    print("Raio de Quebra:\n")
-    if num_dependents == 0:
-        print(f"  SE ALTERAR '{target_id}':\n    Afeta apenas ele mesmo (Componente/Serviço Folha).")
-    else:
-        print(f"  SE ALTERAR '{target_id}':\n    Pode quebrar {len(direct_dependents)} consumidores diretos e {len(indirect_dependents)} indiretos.")
-        if telas_afetadas:
-            print(f"    Telas Afetadas: {', '.join(telas_afetadas[:3])}" + ("..." if len(telas_afetadas) > 3 else ""))
-
-    print(f"\nImpact Score:\n  {score}\n")
+    print(f"Impact Score:\n  {score}\n")
+    print("Justificativa:")
+    for j in justificativas:
+        print(f"  - {j}")
+    print("")
 
 def cmd_feature(args):
     if not args:

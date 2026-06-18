@@ -122,7 +122,8 @@ class CompodocProvider:
                 source=tool.get("name", "Compodoc"),
                 confidence=tool.get("confidence", 100)
             )
-            entities_dict[name] = {"ent": ent, "code": item.get("sourceCode", "")}
+            code_str = str(item.get("sourceCode", "")) + "\n" + str(item.get("defaultValue", ""))
+            entities_dict[name] = {"ent": ent, "code": code_str}
 
         names = list(entities_dict.keys())
         for name, obj in entities_dict.items():
