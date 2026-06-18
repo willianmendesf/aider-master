@@ -12,7 +12,8 @@ def search_code(query: str, project: str) -> str:
     Busca trechos de código relevantes no projeto especificado.
     Use isso antes de pedir para editar arquivos desconhecidos.
     """
-    db_path = os.path.expanduser(f"/dados/aider/rag/db/{project}")
+    aider_global_dir = os.environ.get("AIDER_GLOBAL_DIR", os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    db_path = os.path.expanduser(os.path.join(aider_global_dir, "rag", "db", project))
     if not os.path.exists(db_path):
         return f"Erro: Projeto '{project}' não indexado."
 

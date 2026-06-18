@@ -7,7 +7,7 @@ import subprocess
 from dataclasses import dataclass, field, asdict
 from typing import List, Dict, Optional
 
-AIDER_GLOBAL_DIR = "/dados/aider"
+AIDER_GLOBAL_DIR = os.environ.get("AIDER_GLOBAL_DIR", os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CATALOG_DIR = os.path.join(AIDER_GLOBAL_DIR, "tooling/catalog")
 KNOWLEDGE_DIR = ".ai/knowledge"
 CACHE_DIR = ".ai/cache"

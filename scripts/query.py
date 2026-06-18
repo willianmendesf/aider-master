@@ -104,10 +104,9 @@ def cmd_where(args):
 
 def cmd_discover(args):
     if not args:
-        print("❌ Uso: discover <Termo/Classe>")
+        print("❌ Uso: discover <Termo/Classe> [--tree] [--deep]")
         sys.exit(1)
 
-    term = args[0].lower()
     entities = load_json(ENTITIES_FILE)
 
     if not entities:
@@ -128,12 +127,15 @@ def cmd_discover(args):
         return
 
     is_tree = "--tree" in args
+    is_deep = "--deep" in args
     if is_tree:
-        # Remove a flag para não quebrar o filtro de nome
         args.remove("--tree")
-        if not args:
-            print("❌ Uso: discover <Termo> [--tree]")
-            sys.exit(1)
+    if is_deep:
+        args.remove("--deep")
+        
+    if not args:
+        print("❌ Uso: discover <Termo> [--tree] [--deep]")
+        sys.exit(1)
     
     term = args[0].lower()
     matches = [e for e in entities if term in e.get("id", "").lower() or term in e.get("name", "").lower()]
@@ -250,6 +252,17 @@ def cmd_discover(args):
     print("Relacionamentos Gerais:")
     print(f"  {num_models} models associados")
     print(f"  {num_cons} consumidores detectados\n")
+    
+    if is_deep and file_path and os.path.exists(file_path):
+        print("=======================================")
+        print(" 🔍 CONTEÚDO DO ARQUIVO (--deep)")
+        print("=======================================\n")
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+                print(content)
+        except Exception as ex:
+            print(f"⚠️ Não foi possível ler o arquivo: {ex}")
 
 def cmd_impact(args):
     if not args:
@@ -453,6 +466,69 @@ def cmd_impact(args):
             print(f"    - Integração da tela {c}")
     print("")
 
+def _get_tsconfig_paths():
+    paths = {}
+    for tsconfig_file in ["tsconfig.json", "tsconfig.app.json", "tsconfig.base.json"]:
+        if os.path.exists(tsconfig_file):
+            try:
+                with open(tsconfig_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                content = re.sub(r'//.*', '', content)
+                content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+                data = json.loads(content)
+                if 'compilerOptions' in data and 'paths' in data['compilerOptions']:
+                    for alias, targets in data['compilerOptions']['paths'].items():
+                        if targets:
+                            paths[alias] = targets[0]
+            except Exception:
+                pass
+    return paths
+
+def _resolve_import_path(imp, base_dir, tsconfig_paths):
+    if imp.startswith('.'):
+        resolved = os.path.normpath(os.path.join(base_dir, imp))
+    else:
+        resolved = None
+        for alias, target in tsconfig_paths.items():
+            alias_prefix = alias.replace('/*', '/')
+            target_prefix = target.replace('/*', '/')
+            if imp.startswith(alias_prefix):
+                resolved = os.path.normpath(imp.replace(alias_prefix, target_prefix, 1))
+                break
+        if not resolved:
+            if imp.startswith('@app/'):
+                resolved = os.path.normpath(os.path.join('src/app', imp[5:]))
+            elif imp.startswith('src/'):
+                resolved = os.path.normpath(imp)
+            else:
+                return None
+                
+    if os.path.exists(resolved + '.ts'):
+        return resolved + '.ts'
+    elif os.path.exists(os.path.join(resolved, 'index.ts')):
+        return os.path.join(resolved, 'index.ts')
+    return None
+
+def _classify_import(filepath):
+    path_lower = filepath.lower()
+    
+    if any(k in path_lower for k in ('guard', 'interceptor', 'auth', 'security')):
+        return "INFRA / SEGURANÇA"
+    elif any(k in path_lower for k in ('store', 'state', 'signal', 'reducer', 'action', 'selector', 'effect')):
+        return "ESTADO"
+    elif any(k in path_lower for k in ('route', 'routing')):
+        return "ROTAS"
+    elif any(k in path_lower for k in ('service', 'api')):
+        return "SERVICES USADOS"
+    elif any(k in path_lower for k in ('model', 'interface', 'dto', 'type', 'entity')):
+        return "MODELS / INTERFACES"
+    elif any(k in path_lower for k in ('validator', 'utils', 'helper', 'pipe', 'util')):
+        return "VALIDATORS / UTILS"
+    elif any(k in path_lower for k in ('component', 'shared', 'module')):
+        return "COMPONENTES COMPARTILHADOS"
+    else:
+        return "OUTROS IMPORTS"
+
 def cmd_feature(args):
     if not args:
         print("❌ Uso: feature <Nome>")
@@ -474,162 +550,109 @@ def cmd_feature(args):
             print(f"⚠️ Nenhuma entidade associada à feature '{target}'.")
         return
 
-    # Identificar todas as entidades principais da feature via path heurístico ou nome
-    feature_entities = []
+    candidates = []
     for e in entities:
-        file_path = e.get('file', '')
-        parts = file_path.replace("\\", "/").split("/")
-        feature_str = ""
-        if len(parts) > 1:
-            parent_dir = parts[-2]
-            if parent_dir in ("model", "models", "components", "services", "utils", "shared", "core", "interfaces", "pages", "logged"):
-                if len(parts) > 2:
-                    parent_dir = parts[-3]
-                    if parent_dir in ("pages", "logged"):
-                        if len(parts) > 3: parent_dir = parts[-4]
-            feature_str = parent_dir.lower()
-        
-        if target in feature_str or target in e.get("name", "").lower():
-            feature_entities.append(e)
-
-    if not feature_entities:
-        print(f"⚠️ Nenhuma entidade associada à feature '{target}'.")
+        if e.get("type", "").lower() in ("component", "directive"):
+            if target in e.get("name", "").lower() or target in e.get("file", "").lower():
+                if e.get("file"):
+                    candidates.append(e.get("file"))
+                
+    main_file = None
+    if candidates:
+        for c in candidates:
+            if c and c.endswith(f"{target}.component.ts"):
+                main_file = c
+                break
+        if not main_file:
+            main_file = candidates[0]
+            
+    if not main_file or not os.path.exists(main_file):
+        print(f"⚠️ Não foi possível encontrar o arquivo principal da feature '{target}'.")
         sys.exit(0)
 
-    # Coletar dependências para o Fluxo
-    graph = load_json(GRAPH_FILE)
-    edges = graph.get("edges", [])
-    ent_by_id = {e.get("id"): e for e in entities}
+    base_dir = os.path.dirname(main_file)
+    basename_no_ext = os.path.basename(main_file).replace('.component.ts', '').replace('.ts', '')
+    html_file1 = os.path.join(base_dir, f"{basename_no_ext}.component.html")
+    html_file2 = os.path.join(base_dir, f"{basename_no_ext}.html")
+    scss_file1 = os.path.join(base_dir, f"{basename_no_ext}.component.scss")
+    scss_file2 = os.path.join(base_dir, f"{basename_no_ext}.scss")
+
+    edit_files = [main_file]
+    if os.path.exists(html_file1): edit_files.append(html_file1)
+    elif os.path.exists(html_file2): edit_files.append(html_file2)
     
-    telas = []
-    services = []
-    models = []
-    endpoints = []
-    arquivos = set()
-    feature_ids = set()
+    if os.path.exists(scss_file1): edit_files.append(scss_file1)
+    elif os.path.exists(scss_file2): edit_files.append(scss_file2)
+
+    tsconfig_paths = _get_tsconfig_paths()
+    imports_found = []
     
-    for e in feature_entities:
-        t = e.get("type", "").lower()
-        feature_ids.add(e.get("id"))
-        if t == "component": telas.append(e)
-        elif t == "service": services.append(e)
-        elif t in ("model", "interface", "class"): models.append(e)
-        elif t == "endpoint": endpoints.append(e)
-        
-        if e.get("file"): arquivos.add(e.get("file"))
+    with open(main_file, 'r', encoding='utf-8') as f:
+        content = f.read()
+    matches = re.findall(r"import\s+.*?from\s+['\"](.*?)['\"]", content)
+    
+    for match in matches:
+        if not match.startswith('.') and not match.startswith('@') and not match.startswith('src/'):
+            continue
+        if match.startswith('@angular') or match.startswith('rxjs') or match.startswith('ngx-'):
+            continue
             
-    reused_components = {}
-    external_services = {}
-    tela_deps = {}
-    
-    for tela in telas:
-        tela_id = tela.get("id")
-        deps = set()
-        for edge in edges:
-            if edge.get("from_node") == tela_id:
-                deps.add(edge.get("to_node"))
-        tela_deps[tela_id] = deps
-        
-        for d in deps:
-            d_ent = ent_by_id.get(d)
-            if not d_ent: continue
-            
-            dt = d_ent.get("type", "").lower()
-            if d not in feature_ids:
-                if dt in ("component", "directive"):
-                    reused_components[d] = d_ent
-                    if d_ent.get("file"): arquivos.add(d_ent.get("file"))
-                elif dt == "service":
-                    external_services[d] = d_ent
-                    if d_ent.get("file"): arquivos.add(d_ent.get("file"))
-                elif dt in ("model", "interface", "class"):
-                    models.append(d_ent)
-                    feature_ids.add(d)
-                    if d_ent.get("file"): arquivos.add(d_ent.get("file"))
+        resolved = _resolve_import_path(match, base_dir, tsconfig_paths)
+        if resolved and resolved not in imports_found:
+            imports_found.append(resolved)
 
-    # Ocultar infra/utils do fluxo principal (variáveis, constantes, helpers)
-    infra_utils = []
-    
-    print(f"FEATURE: {args[0].capitalize()}\n")
-    
-    if telas:
-        print("PONTO DE ENTRADA")
-        print(f"  {telas[0].get('file')}\n")
-        
-        print("TELAS PRINCIPAIS")
-        for t in sorted(telas, key=lambda x: x.get("name")):
-            print(f"- {t.get('name')}")
-        print("")
-        
-    all_services = services + list(external_services.values())
-    if all_services:
-        print("SERVICES (Regras de Negócio / Integração)")
-        for s in sorted(all_services, key=lambda x: x.get("name")):
-            print(f"- {s.get('name')}")
-        print("")
-        
-    if endpoints:
-        print("ENDPOINTS MAPEADOS")
-        for ep in sorted(endpoints, key=lambda x: x.get("name")):
-            print(f"- {ep.get('name')}")
-        print("")
+    classified = {
+        "SERVICES USADOS": [],
+        "MODELS / INTERFACES": [],
+        "VALIDATORS / UTILS": [],
+        "COMPONENTES COMPARTILHADOS": [],
+        "INFRA / SEGURANÇA": [],
+        "ESTADO": [],
+        "ROTAS": [],
+        "OUTROS IMPORTS": []
+    }
 
-    if models:
-        print("MODELS (Domínio / Contratos)")
-        for m in sorted(models, key=lambda x: x.get("name")):
-            print(f"- {m.get('name')}")
-        print("")
-        
-    if reused_components:
-        print("COMPONENTES REUTILIZADOS (UI Compartilhada)")
-        for c in sorted(reused_components.values(), key=lambda x: x.get("name")):
-            print(f"- {c.get('name')}")
-        print("")
-        
-    print("FLUXO PRINCIPAL (Arquitetura)")
-    for tela in sorted(telas, key=lambda x: x.get("name")):
-        print(f"[TELA] {tela.get('name')}")
-        
-        tdeps = tela_deps.get(tela.get("id"), set())
-        
-        # Categorizar para o fluxo
-        f_services = [ent_by_id[d].get('name') for d in tdeps if d in ent_by_id and ent_by_id[d].get('type') == 'service']
-        f_models = [ent_by_id[d].get('name') for d in tdeps if d in ent_by_id and ent_by_id[d].get('type') in ('model', 'interface', 'class')]
-        f_ui = [ent_by_id[d].get('name') for d in tdeps if d in ent_by_id and ent_by_id[d].get('type') in ('component', 'directive') and d != tela.get('id')]
-        
-        if f_services:
-            print(" │\n ├── [INTEGRA/CHAMA]")
-            for s in sorted(f_services):
-                print(f" │     └── {s}")
-                if endpoints:
-                    for ep in endpoints[:2]:
-                        print(f" │           ├── {ep.get('name')}")
-                
-        if f_models:
-            print(" │\n ├── [MANIPULA DADOS]")
-            for m in sorted(f_models):
-                print(f" │     └── {m}")
-                
-        if f_ui:
-            print(" │\n └── [RENDERIZA COM]")
-            for u in sorted(f_ui):
-                print(f"       └── {u}")
-        print("")
-    
-    print("ARQUIVOS RELEVANTES (Caminho Completo)")
-    for i, f in enumerate(sorted(arquivos), 1):
-        print(f"{f}")
-        
-    print(f"\nTOTAL DE CONTEXTO:\n{len(arquivos)} arquivos\n")
+    for imp in imports_found:
+        cat = _classify_import(imp)
+        classified[cat].append(imp)
 
-    # Gerar arquivo TXT para automação do Aider
+    print(f"FEATURE: {target.upper()}\n")
+    print("IMPORTS DETECTADOS")
+    if imports_found:
+        for imp in sorted(imports_found):
+            print(f"- {imp}")
+    else:
+        print("- nenhum detectado")
+    print()
+
+    for cat in ["SERVICES USADOS", "MODELS / INTERFACES", "VALIDATORS / UTILS", "COMPONENTES COMPARTILHADOS", "INFRA / SEGURANÇA", "ESTADO", "ROTAS"]:
+        print(f"{cat}")
+        items = classified[cat]
+        if items:
+            for item in sorted(items):
+                print(f"- {item}")
+        else:
+            print("- nenhum detectado")
+        print()
+
+    print("ARQUIVOS CANDIDATOS PARA EDITAR")
+    for f in edit_files:
+        print(f"[EDITAR] {f}")
+    print()
+
+    print("ARQUIVOS CANDIDATOS PARA REFERENCIA")
+    for f in sorted(imports_found):
+        print(f"[REFERENCIA] {f}")
+    print()
+
+    print(f"\nTOTAL DE CONTEXTO:\n{len(edit_files) + len(imports_found)} arquivos\n")
+
     try:
-        import os
         os.makedirs(".ai/cache", exist_ok=True)
         with open(".ai/cache/feature_files.txt", "w", encoding="utf-8") as f:
-            for arq in sorted(arquivos):
+            for arq in edit_files + imports_found:
                 f.write(arq + "\n")
-    except Exception as e:
+    except Exception:
         pass
 
 def main():

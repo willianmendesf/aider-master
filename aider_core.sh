@@ -2,6 +2,16 @@
 # LÓGICA CENTRAL DO AIDER (COMPARTILHADA)
 # ==========================================
 
+_aider_python() {
+    if [ -x "$AIDER_GLOBAL_DIR/venv/Scripts/python.exe" ]; then
+        "$AIDER_GLOBAL_DIR/venv/Scripts/python.exe" "$@"
+    elif command -v _aider_python >/dev/null 2>&1; then
+        _aider_python "$@"
+    else
+        python "$@"
+    fi
+}
+
 # --- HELPERS DE GERENCIAMENTO SEGURO DA PASTA .ai/ ---
 # Garante que a estrutura base exista sem nunca apagar conteúdo
 _init_ai_workspace() {
@@ -146,8 +156,10 @@ design() {
 # Comando para Fatiamento de Tarefas (Gera Plano Rastreável)
 plan() {
     if [ -z "$1" ] || [[ "$1" == --* ]]; then
-        echo "❌ ERRO: Uso: plan \"Sua demanda descritiva\" [--open] [--model <modelo>]"
-        echo "Exemplo: plan \"Criar tela HelloWorld na pasta logged\""
+        echo "❌ ERRO: Uso: plan \"Sua demanda descritiva\" [--feature <nome-feature>] [--new-screen] [--ref <tela-irma>] [--area <area>] [--doc <caminho-doc>] [--open] [--model <modelo>]"
+        echo "Exemplos:"
+        echo "  plan \"padronizar a tela segunda-via-de-boleto\" --feature segunda-via-de-boleto"
+        echo "  plan \"criar nova tela segunda-via-boleto\" --new-screen --ref segunda-via-de-boleto --doc docs/segunda-via.md"
         return 1
     fi
     local DEMANDA="$1"
@@ -157,6 +169,7 @@ plan() {
     local TARGET_FEATURE=""
     local TARGET_REF=""
     local TARGET_AREA=""
+    local TARGET_DOC=""
     local IS_NEW_SCREEN=0
     
     while [[ "$#" -gt 0 ]]; do
@@ -181,6 +194,12 @@ plan() {
                     shift
                 fi
                 ;;
+            --doc) 
+                if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    TARGET_DOC="$2"
+                    shift
+                fi
+                ;;
             --model) 
                 modelo="$2"
                 shift ;;
@@ -196,11 +215,11 @@ plan() {
 
     if [ -n "$TARGET_FEATURE" ]; then
         echo "🔗 Montando contexto para a feature: $TARGET_FEATURE..."
-        python3 "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$TARGET_FEATURE" > .ai/cache/plan_context.md
+        _aider_python "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$TARGET_FEATURE" > .ai/cache/plan_context.md
         SKILLS+=(--read ".ai/cache/plan_context.md")
     elif [ "$IS_NEW_SCREEN" -eq 1 ] && [ -n "$TARGET_REF" ]; then
         echo "🔗 Montando contexto de referência para a tela: $TARGET_REF..."
-        python3 "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$TARGET_REF" > .ai/cache/plan_context.md
+        _aider_python "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$TARGET_REF" > .ai/cache/plan_context.md
         SKILLS+=(--read ".ai/cache/plan_context.md")
     elif [ "$IS_NEW_SCREEN" -eq 1 ] && [ -n "$TARGET_AREA" ]; then
         echo "🔗 Buscando referências na área: $TARGET_AREA..."
@@ -209,6 +228,15 @@ plan() {
         SKILLS+=(--read ".ai/cache/plan_context.md")
     else
         echo "🌐 Modo de Planejamento Global Ativo (isolado do contexto tático). Pode gerar BLOQUEIO se faltar contexto."
+    fi
+
+    if [ -n "$TARGET_DOC" ]; then
+        if [ -f "$TARGET_DOC" ]; then
+            echo "📄 Injetando documento de referência: $TARGET_DOC"
+            SKILLS+=(--read "$TARGET_DOC")
+        else
+            echo "⚠️ Aviso: Documento $TARGET_DOC não encontrado. Ignorando."
+        fi
     fi
 
     echo "🗺️ Atuando como Tech Lead para fatiar o Plano de Ação..."
@@ -752,15 +780,15 @@ bundle() {
 
 # Comando para Engenharia Reversa de Legado
 discover() {
-    python3 "$AIDER_GLOBAL_DIR/scripts/query.py" discover "$@"
+    _aider_python "$AIDER_GLOBAL_DIR/scripts/query.py" discover "$@"
 }
 
 where() {
-    python3 "$AIDER_GLOBAL_DIR/scripts/query.py" where "$@"
+    _aider_python "$AIDER_GLOBAL_DIR/scripts/query.py" where "$@"
 }
 
 impact() {
-    python3 "$AIDER_GLOBAL_DIR/scripts/query.py" impact "$@"
+    _aider_python "$AIDER_GLOBAL_DIR/scripts/query.py" impact "$@"
 }
 
 feature() {
@@ -785,7 +813,7 @@ feature() {
     done
     
     echo "🧠 Montando contexto cirúrgico para a feature: $ALVO..."
-    python3 "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$ALVO" > .ai/cache/feature_context.md
+    _aider_python "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$ALVO" > .ai/cache/feature_context.md
     
     if grep -q "⚠️ Nenhuma entidade" .ai/cache/feature_context.md; then
         cat .ai/cache/feature_context.md
@@ -1003,7 +1031,7 @@ bootstrap() {
     # --- ETAPA 1: ETL estrutural (Compodoc/OpenAPI/Repomix → entities.json + graph.json) ---
     echo ""
     echo "📊 Etapa 1/2: Extração estrutural de entidades..."
-    python3 "$AIDER_GLOBAL_DIR/scripts/knowledge_pipeline.py"
+    _aider_python "$AIDER_GLOBAL_DIR/scripts/knowledge_pipeline.py"
 
     echo "✅ Bootstrap Concluído! O banco de conhecimento local está pronto para comandos como where, impact e feature."
 }
