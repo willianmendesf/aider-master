@@ -193,13 +193,12 @@ plan() {
     touch "$PLANO_ARQUIVO"
 
     local PLAN_PROMPT="Atue como Tech Lead Sênior do Projeto. Demanda: $DEMANDA.
-SEU ESCPO É GLOBAL. Você é responsável por definir 'Qual é a forma correta de implementar isso NESTE projeto?', baseando-se na arquitetura geral, regras e padrões.
-SEU OBJETIVO É CRIAR UM PLANO DE AÇÃO ARQUITETURAL FUNDAMENTADO EM EVIDÊNCIAS.
+SEU ESCPO É GLOBAL. Você é responsável por definir 'Qual é a forma correta de implementar isso NESTE projeto?', baseando-se nas EVIDÊNCIAS reais do repositório, regras e padrões.
+NÃO USE CONHECIMENTO GENÉRICO DE FRAMEWORK. Suas justificativas devem citar nomes de arquivos e componentes que você realmente viu no mapa do repositório.
 NÃO GERE CÓDIGO FONTE. 
-NÃO INVENTE arquivos que você não tem certeza que existem (use a tag [DESCOBRIR]).
-NÃO CHUTE componentes similares se não tiver certeza (diga que precisa descobrir).
+NÃO INVENTE arquivos que você não tem certeza que existem (use a tag [DESCOBRIR]). Arquivos novos com nome previsível devem usar a tag [NOVO].
 
-Analise o repositório, o repo-map e o contexto da feature injetado (se houver e se for aplicável à demanda). Se a demanda for estrutural ou global, ignore o contexto restrito da feature.
+Analise o repositório, o repo-map e o contexto da feature injetado (se aplicável).
 Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdown:
 
 # $NOME_PLANO
@@ -207,44 +206,52 @@ Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdo
 **Fontes Utilizadas:**
 - [x] Conhecimento Global (Repo Map / Estrutura do Projeto)
 - [x] Diretrizes e Regras (.ai/rules)
-- [ ] Contexto Tático Específico (feature_context.md - marque com 'x' APENAS se a demanda for focada em uma feature e utilizou o arquivo)
+- [ ] Contexto Tático Específico (feature_context.md - marque 'x' se você leu dados desse arquivo para esta demanda)
 
 **Objetivo:**
-<Objetivo direto e claro da demanda>
+<Objetivo direto e claro>
 
-**Evidências Arquiteturais:**
-- Referência utilizada: <Componente/Serviço que usou como base ou 'A descobrir'>
-- Padrão detectado: <O padrão de pastas/arquitetura ou 'Requer descoberta'>
+**Confiança do Plano:**
+- Confiança Geral: <0 a 100%>
+- Evidências:
+  ✓ <Fato 1 observado no projeto, ex: Componentes estão na pasta X>
+  ✓ <Fato 2 observado no projeto>
+- Incertezas:
+  ⚠ <O que você não sabe e o desenvolvedor precisará descobrir, ex: Nome exato do arquivo de rotas>
 
-**Complexidade:**
-<BAIXA | MÉDIA | ALTA | EXTREMA>
+**Evidências Arquiteturais (Observações do Projeto):**
+- Componentes base: <Ex: AppointmentsComponent, DashboardComponent (cite nomes reais)>
+- Padrão Estrutural: <Ex: pages/<area>/<feature>/ (Mostre a estrutura de pastas real)>
 
-**Estimativa:**
-<XS (15-30m) | S (1-2h) | M (Meio dia) | L (1-2 dias) | XL (Semana)>
+**Decisões Tomadas:**
+- Decisão: <Ex: Criar componente standalone>
+  Motivo: <Baseado no padrão visto em X e Y>
+- Decisão: <Ex: Não criar service novo>
+  Motivo: <O escopo é apenas visual>
 
-**Risco:**
-<BAIXO | MÉDIO | ALTO>
-Motivo: <Justifique o risco baseado no acoplamento, raio de quebra ou impacto estrutural>
+**Tríade de Gestão:**
+- Complexidade: <BAIXA | MÉDIA | ALTA | EXTREMA>
+- Estimativa: <XS (15-30m) | S (1-2h) | M (Meio dia) | L (1-2 dias) | XL (Semana)>
+- Risco: <BAIXO | MÉDIO | ALTO> (Motivo: <Justifique o risco>)
 
 **Arquivos Impactados:**
-[NOVO] caminho/completo/para/novo/arquivo.ts
-[ALTERAÇÃO] caminho/completo/para/arquivo/existente.ts
-[DESCOBRIR] <O que o desenvolvedor precisa procurar, ex: Arquivo de rotas da área logada>
+[NOVO] caminho/para/novo/arquivo.ts (Para arquivos que devem ser criados)
+[ALTERAÇÃO] caminho/para/arquivo/existente.ts
+[DESCOBRIR] <Para peças de infra/roteamento que você sabe que existem, mas não tem certeza do nome>
 
 **Fase 1 — Descoberta:**
-[ ] <Identificar X>
-[ ] <Confirmar padrão Y>
+[ ] <Localizar X>
+[ ] <Confirmar Y>
 
 **Fase 2 — Implementação:**
 [ ] <Ação técnica 1>
 [ ] <Ação técnica 2>
 
 **Fase 3 — Validação:**
-[ ] <Teste manual necessário>
-[ ] <Validação de build>
+[ ] <Validação 1>
 
 **Critério de Aceite:**
-[ ] <Condição de aceite técnica 1>
+[ ] <Condição 1>
 "
 
     # Gera o plano de forma autônoma sem prender o terminal do usuário em chat iterativo
