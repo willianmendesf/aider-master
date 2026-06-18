@@ -20,6 +20,17 @@ Toda conclusão deve apontar evidência presente no bundle do alvo, no bundle da
 
 Se não conseguir comparar, diga EVIDÊNCIA INSUFICIENTE.
 
+Nem toda diferença entre alvo e referência é divergência.
+Classifique cada diferença como:
+1. PADRONIZAR
+   Quando afeta organização, legibilidade, clean code, estrutura, nomenclatura, complexidade ou padrão visual.
+2. PRESERVAR
+   Quando representa regra de negócio, endpoint, client API, model, contrato de API, payload ou comportamento específico da feature alvo.
+3. INVESTIGAR
+   Quando não há evidência suficiente.
+
+É PROIBIDO recomendar trocar client, endpoint, model ou payload apenas porque a referência usa outro.
+
 # Restrições
 - Não reinvente.
 - Não troque bibliotecas.

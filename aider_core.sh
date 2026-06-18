@@ -1041,17 +1041,16 @@ PROIBIDO usar:
 Se não houver evidência concreta no bundle, escreva:
 EVIDÊNCIA NÃO ENCONTRADA.
 
-Para cada divergência, use o formato:
-## DIVERGÊNCIA-001
+Para cada diferença encontrada, use o formato OBRIGATÓRIO:
+## ITEM-001
+- Classificação: PADRONIZAR | PRESERVAR | INVESTIGAR
 - Tipo: alvo vs Golden Path | alvo vs referência | regra do projeto
 - Arquivo alvo:
 - Evidência no alvo:
 - Evidência na referência:
 - Evidência no Golden Path:
-- Problema:
-- Impacto:
-- Ação recomendada:
-- Preservar comportamento específico do alvo: sim/não
+- Decisão:
+- Ação:
 
 NÃO altere o código e não gere planos."
     elif [ "$FLAG" == "--plan" ]; then
