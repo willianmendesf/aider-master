@@ -276,11 +276,17 @@ def get_provider(tool_name: str):
 def run_tool(tool: Dict) -> bool:
     generate_cmds = tool.get("generate", [])
     success = True
+    
+    # Prepara o env para evitar Node OOM em repasses grandes (Repomix/Compodoc)
+    env = os.environ.copy()
+    if "NODE_OPTIONS" not in env:
+        env["NODE_OPTIONS"] = "--max-old-space-size=8192"
+        
     for cmd in generate_cmds:
         print(f"🔧 Executando: {cmd}")
         try:
             # Added 300 second timeout
-            result = subprocess.run(cmd, shell=True, capture_output=True, timeout=300)
+            result = subprocess.run(cmd, shell=True, capture_output=True, timeout=300, env=env)
             if result.returncode != 0:
                 print(f"  ❌ Comando falhou (Código {result.returncode}): {result.stderr.decode('utf-8', errors='ignore')}")
                 success = False
