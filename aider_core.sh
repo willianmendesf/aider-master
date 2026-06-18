@@ -408,8 +408,8 @@ verify() {
     sed -i '/## 8. Certificação de Auditoria/,$d' "$PLANO"
 
     local REPROVADO=0
-    local ARQUIVOS_REFERENCIA=$(grep -E "^\[REFERENCIA\]" "$PLANO" | sed 's/^\[REFERENCIA\][[:space:]]*//')
-    local ARQUIVOS_EDITAR=$(grep -E "^\[EDITAR\]" "$PLANO" | sed 's/^\[EDITAR\][[:space:]]*//')
+    local ARQUIVOS_REFERENCIA=$(sed -n 's/^[[:space:]]*[-*]*[[:space:]]*\[REFERENCIA\][[:space:]]*//p' "$PLANO")
+    local ARQUIVOS_EDITAR=$(sed -n 's/^[[:space:]]*[-*]*[[:space:]]*\[EDITAR\][[:space:]]*//p' "$PLANO")
     
     # Junta as duas listas removendo linhas vazias
     local ARQUIVOS_EXTRAIDOS=$(echo -e "${ARQUIVOS_REFERENCIA}\n${ARQUIVOS_EDITAR}" | grep -v '^[[:space:]]*$')
@@ -495,9 +495,9 @@ dev() {
         --read "$AIDER_GLOBAL_DIR/skills/angular-patterns.md"
     )
 
-    local ARQUIVOS_REFERENCIA=$(grep -E "^\[REFERENCIA\]" "$PLANO" | sed 's/^\[REFERENCIA\][[:space:]]*//')
-    local ARQUIVOS_EDITAR=$(grep -E "^\[EDITAR\]" "$PLANO" | sed 's/^\[EDITAR\][[:space:]]*//')
-    local ARQUIVOS_NOVOS=$(grep -E "^\[NOVO\]" "$PLANO" | sed 's/^\[NOVO\][[:space:]]*//')
+    local ARQUIVOS_REFERENCIA=$(sed -n 's/^[[:space:]]*[-*]*[[:space:]]*\[REFERENCIA\][[:space:]]*//p' "$PLANO")
+    local ARQUIVOS_EDITAR=$(sed -n 's/^[[:space:]]*[-*]*[[:space:]]*\[EDITAR\][[:space:]]*//p' "$PLANO")
+    local ARQUIVOS_NOVOS=$(sed -n 's/^[[:space:]]*[-*]*[[:space:]]*\[NOVO\][[:space:]]*//p' "$PLANO")
 
     if [ -n "$ARQUIVOS_REFERENCIA" ]; then
         while IFS= read -r arquivo; do
