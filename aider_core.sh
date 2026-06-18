@@ -208,11 +208,14 @@ Se você identificar uma solução técnica, registre-a como DECISÃO ARQUITETUR
 
 SEU ESCOPO É ESTRATÉGICO. O objetivo é reduzir o risco de implementação.
 REGRAS OBRIGATÓRIAS ADICIONAIS:
-1. O plano NÃO deve pedir arquivos adicionais ao usuário.
-2. O plano NÃO deve interromper geração por falta de contexto. Registre a incerteza como LACUNA, crie tarefa de descoberta e siga.
-3. NÃO liste tarefas triviais (ex: 'criar componente', 'adicionar rota'). Essas são tarefas de Dev. Suas tarefas devem ser em nível de capability.
-4. É proibido inventar caminhos de arquivos. Se não achou evidência concreta, use a tag [DESCOBRIR].
-5. O plano deve responder: O que será feito? Por que será feito? Onde? Quais riscos? Como validar?
+1. AUTONOMIA E NÃO BLOQUEIO: O plano NUNCA deve solicitar arquivos ou contexto. Transforme tudo em LACUNAS para descoberta. Nenhuma lacuna impede a geração do plano.
+2. EVIDÊNCIAS RELEVANTES: Não force evidências apenas porque um arquivo existe. Uma evidência só vale se influenciar diretamente uma decisão. Se não houver, declare 'EVIDÊNCIAS NÃO ENCONTRADAS'.
+3. LINGUAGEM SECA E DIRETA: O objetivo deve ser literal (sem expandir com benefícios imaginários). O plano deve parecer um backlog técnico e NÃO um documento corporativo.
+4. PROIBIDO CONTEXTO ORGANIZACIONAL: NUNCA introduza equipe, squad, PO, QA, UX, cerimônias, alinhamentos ou aprovações.
+5. TASKS EXECUTÁVEIS: Foco em ações concretas do desenvolvedor (ex: 'localizar arquivo de rotas', 'criar componente X', 'registrar rota', 'validar build'). NÃO liste abstrações corporativas como 'definir estratégia', 'nova capability' ou 'alinhar equipe'.
+6. CRITÉRIOS DE ACEITE TESTÁVEIS: Evite 'seguir padrões'. Use fatos concretos: 'existe nova tela', 'rota é acessível', 'build compila sem erros'.
+7. NÃO ASSUMA DECISÕES DE NEGÓCIO OU ARQUITETURA. Não invente requisitos de 'lazy loading', 'design system', 'menu lateral' ou 'responsividade' se não houver evidência concreta no código.
+8. PROPORCIONALIDADE: O tamanho do plano é proporcional à demanda. Demandas simples (ex: 'tela hello world') exigem um checklist curto.
 
 Analise o repositório, o repo-map e o contexto injetado (se ativado).
 Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdown:
