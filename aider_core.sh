@@ -1001,7 +1001,7 @@ standardize() {
         
         local NOME_PLANO="PLAN-$(printf "%03d" $PROXIMO_NUM)"
         local PLANO_ARQUIVO=".ai/plans/${NOME_PLANO}.md"
-        local TMP_PLANO=".aider/${NOME_PLANO}.standardize.md"
+        local TMP_PLANO="tmp-${NOME_PLANO}.standardize.md"
         
         touch "$TMP_PLANO"
 
