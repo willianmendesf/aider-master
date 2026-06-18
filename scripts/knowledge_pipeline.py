@@ -86,6 +86,27 @@ class CompodocProvider:
                 raw_items.append((srv, "service"))
             for mod in data.get("modules", []):
                 raw_items.append((mod, "module"))
+            for interface in data.get("interfaces", []):
+                raw_items.append((interface, "interface"))
+            for cls in data.get("classes", []):
+                raw_items.append((cls, "model"))
+            for guard in data.get("guards", []):
+                raw_items.append((guard, "guard"))
+            for interceptor in data.get("interceptors", []):
+                raw_items.append((interceptor, "interceptor"))
+            for directive in data.get("directives", []):
+                raw_items.append((directive, "directive"))
+            for pipe in data.get("pipes", []):
+                raw_items.append((pipe, "pipe"))
+            
+            # miscellaneous usually contains variables (like routes), functions, typealiases
+            misc = data.get("miscellaneous", {})
+            for var in misc.get("variables", []):
+                raw_items.append((var, "variable"))
+            for func in misc.get("functions", []):
+                raw_items.append((func, "function"))
+            for talias in misc.get("typealiases", []):
+                raw_items.append((talias, "typealias"))
         
         for item, etype in raw_items:
             name = item.get("name", "")
