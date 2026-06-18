@@ -214,12 +214,12 @@ REGRAS OBRIGATÓRIAS ADICIONAIS:
 1. PLANEJAMENTO ORIENTADO A CAPABILITY: O plano deve descrever CAPABILITIES e TAREFAS ABSTRATAS. O plano NÃO deve descrever: nomes de classes, nomes de componentes, nomes de métodos, assinaturas ou estruturas de implementação, exceto quando estes elementos forem explicitamente evidenciados no repositório. O executor decide a implementação; o planner define o trabalho.
 2. PROCESSO OBRIGATÓRIO DE DESCOBERTA E AUTONOMIA: Antes de criar qualquer LACUNA ou [DESCOBRIR], você deve exaurir as fontes de evidência disponíveis na seguinte ordem: 1. Arquivos enviados, 2. Arquivos de contexto automático, 3. Repo-map, 4. Regras do projeto, 5. Contexto tático, 6. Evidências já encontradas. É proibido declarar 'não encontrado' ou 'desconhecido' sem informar quais fontes foram consultadas e por quê. Nunca solicite arquivos ao usuário.
 3. FONTES DE EVIDÊNCIA E REGRA DE PROXIMIDADE: Para cada demanda, busque evidências nos diretórios mais próximos ao alvo. Avalie a relevância: ALTA (mesmo diretório, componentes irmãos, mesma feature), MÉDIA (mesmo módulo, mesma camada), BAIXA (serviços genéricos, interfaces distantes). Nunca utilize evidências de baixa relevância se houver evidências de maior relevância não analisadas.
-4. PROCESSO DE COLETA DE EVIDÊNCIAS (MÍNIMO 3): Antes de escrever qualquer seção do plano, execute obrigatoriamente a seguinte investigação:
+4. PROCESSO DE COLETA DE EVIDÊNCIAS: Antes de escrever qualquer seção do plano, execute obrigatoriamente a seguinte investigação:
    - PASSO 1: Localize o diretório alvo mais próximo da demanda.
    - PASSO 2: Inspecione arquivos irmãos da feature solicitada.
    - PASSO 3: Inspecione arquivos de roteamento, registro, bootstrap ou composição relacionados ao alvo.
-   - PASSO 4: Identifique pelo menos 3 evidências concretas. Uma evidência concreta obrigatoriamente deve apontar: arquivo real, caminho completo e existente no repositório. NÃO SÃO ACEITOS como evidência da feature: diretórios, módulos genéricos, project-rules.md, repo-map, shared/*, utilitários, serviços globais. Se menos de 3 evidências concretas reais forem encontradas: NÃO emita DECISÃO, crie apenas LACUNAS.
-5. REGRA DE EVIDÊNCIA FORTE: Uma decisão arquitetural somente pode ser emitida quando existir evidência direta (conforme PASSO 4). Não são suficientes: convenções presumidas da tecnologia ou conhecimento prévio do modelo. Se não existir evidência direta: NÃO crie DECISÃO. Crie HIPÓTESE ou LACUNA.
+   - PASSO 4: Colete TODAS as evidências concretas encontradas. O Planner NÃO PODE declarar trechos de código ou linhas. O Planner deve listar apenas os caminhos dos arquivos observados. Se nenhuma evidência direta existir: registre a lacuna, NÃO invente arquivos.
+5. REGRA DE EVIDÊNCIA FORTE E PROIBIÇÃO DE INVENÇÃO: É expressamente proibido citar qualquer arquivo que não tenha sido explicitamente observado por você (ferramenta) durante a sessão. Se nenhum arquivo for encontrado, NUNCA gere hipótese de nome de arquivo, gere apenas EVIDÊNCIA NÃO ENCONTRADA e uma LACUNA. É PROIBIDO o Planner aprovar seu próprio plano. Nunca pontue ou classifique o status do plano.
 6. REGRA DE PAPEL (FOCO EM ENGENHARIA, NÃO EM GESTÃO): O Planejador mapeia a engenharia, não codifica. Você PODE usar verbos técnicos para descrever O QUE será construído (ex: 'Criar capability de página autenticada', 'Integrar nova rota', 'Apontar arquivos prováveis'), mas É PROIBIDO instruir COMO implementar (não descreva assinaturas, não dite conteúdo interno, não sugira diffs). O plano deve ser detalhado e técnico, guiando o desenvolvedor sem prender suas decisões de código.
 7. LINGUAGEM SECA E DIRETA: Não expanda com benefícios ou contextos organizacionais (equipe, aprovações).
 8. CRITÉRIOS DE ACEITE TESTÁVEIS: Use fatos concretos ('rota acessível', 'interface carregada sem erros').
@@ -235,13 +235,19 @@ Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdo
 
 ## 1. Conhecimento e Evidências
 
-**Evidências Observadas no Projeto:**
+**Evidências Observadas:**
 EVID-001
 - Arquivo: <Caminho absoluto do código fonte. PROIBIDO usar project-rules.md, repo-map, diretórios, utilitários, ou shared/>
-- Trecho Evidenciado: <Código ou configuração exata encontrada no arquivo provando o fato>
-- Impacto: <O que o trecho provado significa para a demanda atual>
-- Relevância: <ALTA | MÉDIA | BAIXA>
-- Confiança: <100% (evidenciado) ou % menor (inferido)>
+- Necessário validar
+
+**Status:**
+NÃO VALIDADO (ou EVIDÊNCIA NÃO ENCONTRADA)
+
+**Hipóteses de Trabalho:**
+HIP-001
+- Descrição: <O que você acha que existe ou como funciona>
+- Motivo: <Por que você acha isso>
+- Confiança: <Ex: 40%>
 
 ## 2. Lacunas de Conhecimento (Incertezas)
 
@@ -285,6 +291,7 @@ DECISÃO-001
 
 **Critérios de Aceite:**
 [ ] <O que garante que a tarefa está pronta de forma verificável>
+
 "
 
     # Gera o plano de forma autônoma sem prender o terminal do usuário em chat iterativo
@@ -293,11 +300,81 @@ DECISÃO-001
         --yes \
         --message "$PLAN_PROMPT"
 
+    # Validação de Infraestrutura
+    if [ ! -s "$PLANO_ARQUIVO" ]; then
+        echo "❌ ERRO: O plano gerado está vazio. O modelo falhou em formatar o bloco de texto."
+        rm -f "$PLANO_ARQUIVO"
+        return 1
+    fi
+
+    if ! grep -q "## 1. Conhecimento e Evidências" "$PLANO_ARQUIVO"; then
+        echo "❌ ERRO: O plano não possui a estrutura mínima esperada (Possível alucinação do LLM)."
+        return 1
+    fi
+
     echo "✅ Plano gerado com sucesso em: $PLANO_ARQUIVO"
 
     if [ "$OPEN_AIDER" -eq 1 ]; then
-        echo "🚀 Abrindo Aider para execução do plano..."
-        agent "$modelo" "${BASE_SKILLS[@]}" --read "$PLANO_ARQUIVO" --message "Vamos iniciar a execução do plano $NOME_PLANO. Leia a Fase 1 (Descoberta) e inicie a navegação nos arquivos para confirmar o contexto antes de ir para a Implementação."
+        echo "🚀 Abrindo Aider para verificação e execução do plano..."
+        agent "$modelo" "${BASE_SKILLS[@]}" --read "$PLANO_ARQUIVO" --message "O plano $NOME_PLANO foi gerado. Antes de codificar, valide as evidências (VERIFY)."
+    fi
+}
+
+# Comando de Auditoria (VERIFY)
+verify() {
+    # Uso: verify <caminho_do_plano>
+    if [ -z "$1" ] || [[ "$1" == --* ]]; then
+        echo "Uso: verify <Caminho do Plano .ai/plans/PLAN-XXX.md>"
+        return 1
+    fi
+    local PLANO="$1"
+    
+    if [ ! -f "$PLANO" ]; then
+        echo "❌ ERRO: O plano '$PLANO' não foi encontrado."
+        return 1
+    fi
+
+    echo "🔎 Iniciando VERIFY (BASH) para auditoria determinística do plano $PLANO..."
+
+    # Remover certificação anterior se houver
+    sed -i '/## 8. Certificação de Auditoria/,$d' "$PLANO"
+
+    local REPROVADO=0
+    # Extrai o caminho após "- Arquivo: "
+    local ARQUIVOS_EXTRAIDOS=$(grep -E "^- Arquivo: " "$PLANO" | sed 's/^- Arquivo: //')
+
+    echo -e "\n## 8. Certificação de Auditoria" >> "$PLANO"
+
+    if [ -z "$ARQUIVOS_EXTRAIDOS" ]; then
+        echo "- **VERIFY:** REPROVADO" >> "$PLANO"
+        echo "- **Motivos:** Nenhuma evidência de arquivo encontrada no plano." >> "$PLANO"
+        echo "❌ VERIFY REPROVADO: Nenhum arquivo listado para auditoria."
+        return 1
+    fi
+
+    local MOTIVOS=""
+    while IFS= read -r arquivo; do
+        arquivo=$(echo "$arquivo" | tr -d '\r')
+        if [ -n "$arquivo" ]; then
+            if [ ! -e "$arquivo" ]; then
+                REPROVADO=1
+                MOTIVOS="${MOTIVOS}\n- Arquivo inexistente: $arquivo"
+                echo "   ❌ Falha: $arquivo (não existe)"
+            else
+                echo "   ✅ OK: $arquivo"
+            fi
+        fi
+    done <<< "$ARQUIVOS_EXTRAIDOS"
+
+    if [ $REPROVADO -eq 1 ]; then
+        echo "- **VERIFY:** REPROVADO" >> "$PLANO"
+        echo -e "- **Motivos:** $MOTIVOS" >> "$PLANO"
+        echo "❌ VERIFY REPROVADO. Consulte o plano para os motivos."
+        return 1
+    else
+        echo "- **VERIFY:** APROVADO" >> "$PLANO"
+        echo "- **Motivos:** Arquivos listados existem e foram verificados fisicamente." >> "$PLANO"
+        echo "✅ VERIFY APROVADO."
     fi
 }
 
@@ -345,7 +422,15 @@ dev() {
     )
 
     echo "🔨 Iniciando Motor de Execução Seguro baseado em: $PLANO..."
-    agent "$modelo" "${SKILLS[@]}" --file "$PLANO" --message "Atue como Desenvolvedor (Dev Golden Path). Leia o plano fornecido e execute EXATAMENTE as tarefas designadas. NUNCA invente novos padrões arquiteturais, procure por referências no código existente. Atualize o arquivo do plano marcando as tarefas concluídas com [x]. Para as tarefas de Descoberta (Fase 1), você OBRIGATORIAMENTE deve escrever o resultado da descoberta (rotas, arquivos, padrões encontrados) ao lado ou abaixo da tarefa concluída, não apenas marque o [x]. Assine suas criações com a rastreabilidade do PLANO/ADR." "$@"
+    
+    # Checagem primária em shell antes de chamar a IA
+    if ! grep -q "VERIFY: APROVADO" "$PLANO"; then
+        echo "❌ ERRO: O plano '$PLANO' não possui a certificação 'VERIFY: APROVADO'."
+        echo "   Execute o comando 'verify $PLANO' para auditar o plano antes do dev."
+        return 1
+    fi
+
+    agent "$modelo" "${SKILLS[@]}" --file "$PLANO" --message "Atue como Desenvolvedor (Dev Golden Path). Leia o plano fornecido. O plano pode conter informações falsas. Assuma inicialmente que TODA evidência do plano é suspeita. ANTES DE IMPLEMENTAR: 1. Verifique a existência e o conteúdo dos arquivos usando suas ferramentas de leitura. 2. Verifique a tecnologia. 3. Verifique os padrões do projeto. Somente você, o DEV, pode produzir evidência concreta. Se qualquer evidência for falsa: PARE, não codifique, e atualize o plano com STATUS: BLOQUEADO (Motivo: Evidência não encontrada). CASO ESTEJA TUDO OK: execute EXATAMENTE as tarefas designadas. NUNCA invente novos padrões arquiteturais, procure por referências no código existente. Atualize o arquivo do plano marcando as tarefas concluídas com [x]. Para as tarefas de Descoberta (Fase 1), você OBRIGATORIAMENTE deve escrever a '## Resultado da Descoberta' contendo 'Arquivo', 'Linhas' e 'Evidência concreta'. Assine suas criações com a rastreabilidade do PLANO/ADR." "$@"
 }
 
 # Modo Ask

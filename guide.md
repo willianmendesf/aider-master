@@ -130,13 +130,19 @@ Você precisa trabalhar na feature "xyz". Em vez de adicionar arquivos manualmen
    - Onde eu preciso mexer para adicionar um novo campo "priority" no model?
    - Quero adicionar um botão para duplicar um item existente.
 
-4. **Planeje a Mudança como um Tech Lead (se precisar de plano formal)**:
+4. **Projete a Solução (Decisão Tática)**:
+   ```bash
+   design "Nova tela de consulta de items na feature XYZ"
+   ```
+   A IA atua como System Design (decisão tática local) para estruturar uma solução, descrevendo: arquitetura dos componentes, fluxo principal, serviços que serão usados, sem gerar código e sem gerar um ADR (o `architect` é para mudanças estruturais grandes, o `design` é para tarefas táticas).
+
+5. **Planeje a Mudança como um Tech Lead (se precisar de plano formal)**:
    ```bash
    plan "Adicionar regra de desconto na Nova Feature XYZ"
    ```
    A IA fatiará a feature em pequenas tarefas de código num arquivo `PLAN-001.md`.
 
-5. **Programe as Tarefas (O Método Guiado)**:
+6. **Programe as Tarefas (O Método Guiado)**:
    ```bash
    dev .ai/plans/PLAN-001.md
    ```
@@ -144,7 +150,7 @@ Você precisa trabalhar na feature "xyz". Em vez de adicionar arquivos manualmen
 
 ---
 
-### Cenário 6: Desenvolvimento Livre (Mão na Massa Direto)
+### Cenário 8: Desenvolvimento Livre (Mão na Massa Direto)
 Se a sua tarefa é pequena e não exige um "Plano Oficial", você pode codar e gerar arquivos livremente numa sessão interativa, usando o `agent` principal.
 
 1. **Inicie o Agente de Desenvolvimento**:
@@ -164,11 +170,11 @@ Se a sua tarefa é pequena e não exige um "Plano Oficial", você pode codar e g
    ```text
    > crie um novo arquivo de Utils para datas e refatore o ServiceA para usá-lo.
    ```
-   O Aider irá criar o arquivo, escrever o código, e aplicar a mudança, você revisa tudo no seu VSCode antes de commitar!
+   O Aider irá criar o arquivo, escrever o código, e aplicar a mudança. Como desativamos commits automáticos (`--no-auto-commits`), você revisa tudo no seu VSCode antes de commitar!
 
 ---
 
-### Cenário 7: Investigando um Bug em Produção
+### Cenário 9: Investigando um Bug em Produção
 O sistema quebrou, e você tem apenas a mensagem de erro.
 
 1. **Inicie a Investigação de Causa Raiz**:
@@ -179,7 +185,7 @@ O sistema quebrou, e você tem apenas a mensagem de erro.
 
 ---
 
-### Cenário 8: Garantir a Qualidade da Entrega (Antes do Deploy)
+### Cenário 10: Garantir a Qualidade da Entrega (Antes do Deploy)
 Mudança feita e bug corrigido. Hora de garantir que ninguém feriu os padrões corporativos.
 
 1. **Limpeza e Auditoria**:
