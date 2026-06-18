@@ -172,6 +172,12 @@ plan() {
         --read "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
     )
 
+    # Integração com o Knowledge Graph: Consome a última feature analisada
+    if [ -s ".ai/cache/feature_context.md" ]; then
+        echo "🔗 Contexto tático detectado (.ai/cache/feature_context.md). Injetando no plano..."
+        SKILLS+=(--read ".ai/cache/feature_context.md")
+    fi
+
     echo "🗺️ Atuando como Tech Lead para fatiar o Plano de Ação..."
     echo "📝 Demanda: $DEMANDA"
     
@@ -187,37 +193,52 @@ plan() {
     touch "$PLANO_ARQUIVO"
 
     local PLAN_PROMPT="Atue como Tech Lead Sênior. Demanda: $DEMANDA.
-SEU OBJETIVO É CRIAR UM PLANO DE AÇÃO EXECUTÁVEL.
+SEU OBJETIVO É CRIAR UM PLANO DE AÇÃO ARQUITETURAL FUNDAMENTADO EM EVIDÊNCIAS.
 NÃO GERE CÓDIGO FONTE. 
-NÃO INVENTE ADRs INEXISTENTES OU TAREFAS GENÉRICAS COMO 'Revisar requisitos' OU 'Testes manuais'.
+NÃO INVENTE arquivos que você não tem certeza que existem (use a tag [DESCOBRIR]).
+NÃO CHUTE componentes similares se não tiver certeza (diga que precisa descobrir).
 
-Analise o repositório e os padrões do projeto para basear seu plano NA REALIDADE DO CÓDIGO (ex: quais rotas já existem, padrões de injeção, etc).
-Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato (escreva direto no arquivo usando formato Markdown limpo):
+Analise o repositório, o repo-map e o contexto injetado (se houver) para embasar o plano.
+Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdown:
 
 # $NOME_PLANO
 
 **Objetivo:**
 <Objetivo direto e claro da demanda>
 
-**Contexto Detectado:**
-- Área/Módulo afetado:
-- Framework/Padrões identificados:
-- Componentes similares encontrados no projeto:
+**Evidências Arquiteturais:**
+- Referência utilizada: <Componente/Serviço que usou como base ou 'A descobrir'>
+- Padrão detectado: <O padrão de pastas/arquitetura ou 'Requer descoberta'>
 
-**Arquivos Provavelmente Afetados:**
+**Complexidade:**
+<BAIXA | MÉDIA | ALTA | EXTREMA>
+
+**Estimativa:**
+<XS (15-30m) | S (1-2h) | M (Meio dia) | L (1-2 dias) | XL (Semana)>
+
+**Risco:**
+<BAIXO | MÉDIO | ALTO>
+Motivo: <Justifique o risco baseado no acoplamento ou raio de quebra>
+
+**Arquivos Impactados:**
 [NOVO] caminho/completo/para/novo/arquivo.ts
 [ALTERAÇÃO] caminho/completo/para/arquivo/existente.ts
+[DESCOBRIR] <O que o desenvolvedor precisa procurar, ex: Arquivo de rotas da área logada>
 
-**Checklist:**
-[ ] TASK-001: <Ação técnica direta sobre o código 1>
-[ ] TASK-002: <Ação técnica direta sobre o código 2>
+**Fase 1 — Descoberta:**
+[ ] <Identificar X>
+[ ] <Confirmar padrão Y>
+
+**Fase 2 — Implementação:**
+[ ] <Ação técnica 1>
+[ ] <Ação técnica 2>
+
+**Fase 3 — Validação:**
+[ ] <Teste manual necessário>
+[ ] <Validação de build>
 
 **Critério de Aceite:**
 [ ] <Condição de aceite técnica 1>
-[ ] <Condição de aceite técnica 2>
-
-**Riscos:**
-- <Quais as chances de quebra de contrato ou dependências?>
 "
 
     # Gera o plano de forma autônoma sem prender o terminal do usuário em chat iterativo
@@ -230,7 +251,7 @@ Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato (escre
 
     if [ "$OPEN_AIDER" -eq 1 ]; then
         echo "🚀 Abrindo Aider para execução do plano..."
-        agent "$modelo" "${BASE_SKILLS[@]}" --read "$PLANO_ARQUIVO" --message "Vamos iniciar a execução do plano $NOME_PLANO. Leia as tarefas e me diga qual será o primeiro arquivo a alterarmos."
+        agent "$modelo" "${BASE_SKILLS[@]}" --read "$PLANO_ARQUIVO" --message "Vamos iniciar a execução do plano $NOME_PLANO. Leia a Fase 1 (Descoberta) e inicie a navegação nos arquivos para confirmar o contexto antes de ir para a Implementação."
     fi
 }
 
