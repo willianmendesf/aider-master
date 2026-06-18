@@ -205,6 +205,7 @@ plan() {
     local TARGET_DOC=""
     local IS_NEW_SCREEN=0
     
+    local modelo="default"
     while [[ "$#" -gt 0 ]]; do
         case $1 in
             --open) OPEN_AIDER=1 ;;
@@ -234,9 +235,19 @@ plan() {
                 fi
                 ;;
             --model) 
-                modelo="$2"
-                shift ;;
-            *) modelo="$1" ;;
+                if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    modelo="$2"
+                    shift
+                else
+                    echo "❌ ERRO: --model requer um valor."
+                    return 1
+                fi
+                ;;
+            *)
+                echo "❌ Argumento desconhecido no plan: $1"
+                echo "Use: --feature, --new-screen, --ref, --area, --doc, --open ou --model"
+                return 1
+                ;;
         esac
         shift
     done
@@ -793,7 +804,19 @@ feature() {
         case $1 in
             --ai|--report) USE_AI=1 ;;
             --open) OPEN_AIDER=1 ;;
-            *) modelo="$1" ;;
+            --model)
+                if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    modelo="$2"
+                    shift
+                else
+                    echo "❌ ERRO: --model requer um valor."
+                    return 1
+                fi
+                ;;
+            *)
+                echo "❌ Argumento desconhecido em feature: $1"
+                return 1
+                ;;
         esac
         shift
     done
