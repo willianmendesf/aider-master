@@ -260,8 +260,6 @@ def cmd_feature(args):
         print("❌ Uso: feature <Nome>")
         sys.exit(1)
 
-    # feature builds context and invokes AIDER, but the python script just gathers data
-    # In bash we will pipe this data to aider.
     target = args[0].lower()
     entities = load_json(ENTITIES_FILE)
 
@@ -288,11 +286,71 @@ def cmd_feature(args):
         print(f"⚠️ Nenhuma entidade associada à feature '{target}'.")
         sys.exit(0)
 
-    print(f"# Contexto da Feature: {args[0]}\n")
+    components = []
+    services = []
+    models = []
+    endpoints = []
+    outros = []
+    arquivos = set()
+
     for e in feature_entities:
-        print(f"## {e.get('name')} ({e.get('type')})")
-        print(f"- Arquivo: {e.get('file')}:{e.get('line')}")
-        print(f"- Source: {e.get('source')} (Confiança: {e.get('confidence')}%)\n")
+        t = e.get("type", "").lower()
+        name = e.get("name", "")
+        if t == "component": components.append(name)
+        elif t == "service": services.append(name)
+        elif t in ("model", "interface"): models.append(name)
+        elif t == "endpoint": endpoints.append(name)
+        else: outros.append(name)
+        
+        if e.get("file"):
+            arquivos.add(e.get("file"))
+
+    total = len(feature_entities)
+    impacto = "MÉDIO"
+    if len(endpoints) > 0 or len(services) > 5:
+        impacto = "ALTO"
+    elif total < 4:
+        impacto = "BAIXO"
+
+    print("=======================================")
+    print(" 🎯 FEATURE IMPACT REPORT")
+    print("=======================================\n")
+    print(f"Feature:\n  {args[0].capitalize()}\n")
+    print(f"Arquivos:\n  {len(arquivos)}\n")
+
+    if components:
+        print("Componentes (UI):")
+        for c in sorted(components):
+            print(f"  - {c}")
+        print("")
+
+    if services:
+        print("Serviços (Lógica/Integração):")
+        for s in sorted(services):
+            print(f"  - {s}")
+        print("")
+
+    if models:
+        print("Models / Interfaces:")
+        for m in sorted(models):
+            print(f"  - {m}")
+        print("")
+
+    if endpoints:
+        print("Endpoints Relacionados:")
+        for ep in sorted(endpoints):
+            print(f"  - {ep}")
+        print("")
+
+    if outros:
+        print("Outros Elementos (Modules, etc):")
+        for o in sorted(outros):
+            print(f"  - {o}")
+        print("")
+
+    print(f"Impacto Geral da Feature:\n  {impacto}\n")
+    print("Motivo:")
+    print(f"  A feature engloba {len(components)} componentes, depende de {len(services)} serviços centrais e {len(endpoints)} endpoints.\n")
 
 def main():
     if len(sys.argv) < 2:
