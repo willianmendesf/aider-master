@@ -257,6 +257,14 @@ plan() {
         --read "$AIDER_GLOBAL_DIR/skills/planner.md"
     )
 
+    if [ -z "$TARGET_FEATURE" ] && [ -z "$TARGET_REF" ] && [ -z "$TARGET_AREA" ]; then
+        if [ "$IS_NEW_SCREEN" -eq 0 ]; then
+            echo "❌ ERRO: plan precisa de contexto para alteração em tela existente."
+            echo "Use: --feature <nome> ou --ref <caminho-da-tela>"
+            return 1
+        fi
+    fi
+
     if [ -n "$TARGET_FEATURE" ]; then
         echo "🔗 Montando contexto para a feature: $TARGET_FEATURE..."
         _aider_python "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$TARGET_FEATURE" > .ai/cache/plan_context.md
@@ -290,7 +298,7 @@ plan() {
     
     local NOME_PLANO
     NOME_PLANO="$(_next_plan_file)"
-    local TMP_PLANO=".aider/${NOME_PLANO}.md"
+    local TMP_PLANO=".aider-plan-${NOME_PLANO}.md"
     local PLANO_ARQUIVO=".ai/plans/${NOME_PLANO}.md"
 
     # Preenche o esqueleto inicial
@@ -317,6 +325,12 @@ EOF
         --message "$PLAN_PROMPT"
 
     # Validação de Infraestrutura
+    if grep -q "<!-- Preencha aqui" "$TMP_PLANO"; then
+        echo "❌ ERRO: Plano não foi preenchido. O modelo retornou o esqueleto vazio."
+        rm -f "$TMP_PLANO"
+        return 1
+    fi
+
     if [ -s "$TMP_PLANO" ]; then
         mv "$TMP_PLANO" "$PLANO_ARQUIVO"
     else
@@ -614,7 +628,7 @@ code-review() {
     
     local NOME_REVIEW
     NOME_REVIEW="$(_next_review_file)"
-    local TMP_REVIEW=".aider/${NOME_REVIEW}.md"
+    local TMP_REVIEW=".aider-review-${NOME_REVIEW}.md"
     local REVIEW_ARQUIVO=".ai/reviews/${NOME_REVIEW}.md"
 
     cat > "$TMP_REVIEW" <<EOF
@@ -647,6 +661,12 @@ Edite OBRIGATORIAMENTE o arquivo $TMP_REVIEW preenchendo o esqueleto."
         --file "$TMP_REVIEW" \
         --yes \
         --message "$PROMPT" "$@"
+
+    if grep -q "<!-- APROVADO | APROVADO COM RESSALVAS | REPROVADO -->" "$TMP_REVIEW"; then
+        echo "❌ ERRO: O review não foi preenchido. O modelo retornou o esqueleto vazio."
+        rm -f "$TMP_REVIEW"
+        return 1
+    fi
 
     if [ -s "$TMP_REVIEW" ]; then
         mv "$TMP_REVIEW" "$REVIEW_ARQUIVO"
@@ -962,7 +982,7 @@ standardize() {
         
         local NOME_PLANO="PLAN-$(printf "%03d" $PROXIMO_NUM)"
         local PLANO_ARQUIVO=".ai/plans/${NOME_PLANO}.md"
-        local TMP_PLANO="tmp-${NOME_PLANO}.standardize.md"
+        local TMP_PLANO=".aider-plan-${NOME_PLANO}.md"
         
         # Preenche o esqueleto inicial para forçar a IA a usar um bloco de SEARCH/REPLACE
         cat <<EOF > "$TMP_PLANO"
@@ -1013,6 +1033,12 @@ Formato OBRIGATÓRIO de cada tarefa:
         echo "📏 Planejando Padronização em $ALVO (Gerando rascunho em $TMP_PLANO)..."
         agent "$modelo" "${SKILLS[@]}" "${CONTEXT_ARGS[@]}" --file "$TMP_PLANO" --yes --message "$MENSAGEM" "$@"
         
+        if grep -q "<!-- INSIRA_AS_TAREFAS_AQUI -->" "$TMP_PLANO"; then
+            echo "❌ ERRO: O plano temporário não foi preenchido corretamente."
+            rm -f "$TMP_PLANO"
+            return 1
+        fi
+
         if [ -s "$TMP_PLANO" ]; then
             mv "$TMP_PLANO" "$PLANO_ARQUIVO"
             echo "✅ Plano movido com sucesso. Gerado em: $PLANO_ARQUIVO"
