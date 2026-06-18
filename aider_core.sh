@@ -198,24 +198,26 @@ plan() {
     local PLAN_PROMPT="Atue como Tech Lead Sênior do Projeto e Planejador Arquitetural. Demanda: $DEMANDA.
 
 REGRA CRÍTICA - PROIBIÇÃO DE IMPLEMENTAÇÃO:
-O comando PLAN é estritamente um gerador de planejamento. É PROIBIDO:
-* Criar código ou arquivos de implementação
-* Alterar código existente
-* Aplicar patches ou gerar diffs
-* Produzir blocos SEARCH/REPLACE para arquivos .ts, .html, .css, etc.
+O comando PLAN é estritamente um gerador de planejamento. O agente PLAN NÃO implementa.
+É PROIBIDO:
+* Criar código ou gerar componentes
+* Propor diffs ou escrever arquivos finais
+* Adicionar trechos de implementação
+* Produzir blocos SEARCH/REPLACE para arquivos .ts, .js, .java, .html, .css, .scss, SQL, YAML, etc.
 O único artefato permitido para edição é: $PLANO_ARQUIVO.
-Se você identificar uma solução técnica, registre-a como DECISÃO ARQUITETURAL ou RECOMENDAÇÃO TÉCNICA. NUNCA tente aplicá-la.
+Se você gerar qualquer arquivo fora de $PLANO_ARQUIVO ou gerar código/diffs durante a fase PLAN, considere comportamento incorreto. Regenere o plano apenas com as instruções estratégicas.
 
-SEU ESCOPO É ESTRATÉGICO. O objetivo é reduzir o risco de implementação.
+SEU ESCOPO É ESTRATÉGICO. O objetivo é orientar a execução: descobrir impacto, decompor tarefas, identificar riscos, apontar arquivos prováveis e registrar incertezas. 
+Após ler o plano, um executor deve conseguir realizar a tarefa sem que você (planejador) tenha escrito uma única linha de código.
+
 REGRAS OBRIGATÓRIAS ADICIONAIS:
-1. AUTONOMIA E NÃO BLOQUEIO: O plano NUNCA deve solicitar arquivos ou contexto. Transforme tudo em LACUNAS para descoberta. Nenhuma lacuna impede a geração do plano.
-2. EVIDÊNCIAS RELEVANTES: Não force evidências apenas porque um arquivo existe. Uma evidência só vale se influenciar diretamente uma decisão. Se não houver, declare 'EVIDÊNCIAS NÃO ENCONTRADAS'.
-3. LINGUAGEM SECA E DIRETA: O objetivo deve ser literal (sem expandir com benefícios imaginários). O plano deve parecer um backlog técnico e NÃO um documento corporativo.
-4. PROIBIDO CONTEXTO ORGANIZACIONAL: NUNCA introduza equipe, squad, PO, QA, UX, cerimônias, alinhamentos ou aprovações.
-5. TASKS EXECUTÁVEIS: Foco em ações concretas do desenvolvedor (ex: 'localizar arquivo de rotas', 'criar componente X', 'registrar rota', 'validar build'). NÃO liste abstrações corporativas como 'definir estratégia', 'nova capability' ou 'alinhar equipe'.
-6. CRITÉRIOS DE ACEITE TESTÁVEIS: Evite 'seguir padrões'. Use fatos concretos: 'existe nova tela', 'rota é acessível', 'build compila sem erros'.
-7. NÃO ASSUMA DECISÕES DE NEGÓCIO OU ARQUITETURA. Não invente requisitos de 'lazy loading', 'design system', 'menu lateral' ou 'responsividade' se não houver evidência concreta no código.
-8. PROPORCIONALIDADE: O tamanho do plano é proporcional à demanda. Demandas simples (ex: 'tela hello world') exigem um checklist curto.
+1. PLANEJAMENTO ORIENTADO A CAPABILITY: O plano deve descrever CAPABILITIES e TAREFAS ABSTRATAS. O plano NÃO deve descrever: nomes de classes, nomes de componentes, nomes de métodos, assinaturas ou estruturas de implementação, exceto quando estes elementos forem explicitamente evidenciados no repositório. O executor decide a implementação; o planner define o trabalho.
+2. PROCESSO OBRIGATÓRIO DE DESCOBERTA E AUTONOMIA: Antes de criar qualquer LACUNA ou [DESCOBRIR], você deve exaurir as fontes de evidência disponíveis na seguinte ordem: 1. Arquivos enviados, 2. Arquivos de contexto automático, 3. Repo-map, 4. Regras do projeto, 5. Contexto tático, 6. Evidências já encontradas. É proibido declarar 'não encontrado' ou 'desconhecido' sem informar quais fontes foram consultadas e por quê. Nunca solicite arquivos ao usuário.
+3. FONTES DE EVIDÊNCIA E REGRA DE PROXIMIDADE: Para cada demanda, busque evidências nos diretórios mais próximos ao alvo. Avalie a relevância: ALTA (mesmo diretório, componentes irmãos, mesma feature), MÉDIA (mesmo módulo, mesma camada), BAIXA (serviços genéricos, interfaces distantes). Nunca utilize evidências de baixa relevância se houver evidências de maior relevância não analisadas.
+4. EVIDÊNCIAS ESTRITAMENTE RELEVANTES: Somente utilize evidências diretamente relacionadas à demanda. Não invente arquitetura (ex: lazy loading, design system) sem evidência concreta.
+5. TASKS EXECUTÁVEIS E LINGUAGEM SECA: Foco em ações concretas do desenvolvedor. Não expanda com benefícios ou contextos organizacionais (equipe, aprovações).
+6. CRITÉRIOS DE ACEITE TESTÁVEIS: Use fatos concretos ('rota acessível', 'build compila').
+7. PROPORCIONALIDADE: Demandas simples exigem checklist curto.
 
 Analise o repositório, o repo-map e o contexto injetado (se ativado).
 Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdown:
@@ -229,54 +231,52 @@ Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdo
 
 **Evidências Observadas no Projeto:**
 EVID-001
-- Arquivo: <Caminho absoluto do arquivo real encontrado>
-- Observação: <Fato observado. Ex: standalone: true>
+- Arquivo: <Caminho absoluto do arquivo real encontrado - SÓ ARQUIVOS RELEVANTES DE ALTA/MÉDIA PROXIMIDADE>
+- Observação: <Fato observado>
 - Conclusão: <O que o fato significa>
+- Relevância: <ALTA | MÉDIA | BAIXA>
 - Confiança: <100% (evidenciado) ou % menor (inferido)>
 
 ## 2. Lacunas de Conhecimento (Incertezas)
 
 LACUNA-001
-- Descrição: <O que não foi encontrado>
-- Impacto: <BAIXO | MÉDIO | ALTO>
-- Bloqueia: <Qual ação arquitetural está pendente disso>
-- Resolução: <Objetivo da descoberta. Ex: 'Validar padrão de roteamento'>
+- Pergunta: <O que precisa ser descoberto? Ex: Como novas telas são registradas na área logged?>
+- Fontes consultadas: <Listar as fontes exauridas. Ex: repo-map, src/app/pages/...>
+- Resultado: <O que foi/não foi encontrado>
+- Motivo da lacuna: <Por que não foi possível afirmar a evidência>
+- Próxima ação: <O que o executor deve fazer na fase de descoberta para resolver a lacuna>
 
 ## 3. Decisões Arquiteturais
 
 DECISÃO-001
-- O Que: <Ex: Utilizar padrão standalone>
+- O Que: <Decisão tomada com base exclusiva em evidências reais>
 - Evidência Base: <EVID-001>
-- Motivo: <Justificativa técnica baseada na evidência>
+- Motivo: <Justificativa técnica>
 - Confiança: <%>
 
 ## 4. Tríade de Gestão
 - **Complexidade:** <BAIXA | MÉDIA | ALTA | EXTREMA>
 - **Estimativa:** <XS (15-30m) | S (1-2h) | M (Meio dia) | L (1-2 dias) | XL (Semana)>
 - **Risco:** <BAIXO | MÉDIO | ALTO>
-- **Impacto Esperado:** <Quais áreas, consumidores ou fluxos de dependência do projeto podem ser afetados>
+- **Impacto Esperado:** <Áreas afetadas>
 
 ## 5. Arquivos Relevantes
-[EVIDENCIADO] <Arquivo base que servirá de Golden Path>
+[EVIDENCIADO] <Arquivo base que servirá de referência (Golden Path)>
 [DESCOBRIR] <Arquivo que o dev precisa mapear na fase de descoberta>
 
-## 6. Plano de Ação (Arquitetural)
+## 6. Plano de Execução
 
 **Fase 1 — Descoberta:**
-[ ] <Validar padrão arquitetural Y>
-[ ] <Identificar mecanismo existente de X>
+[ ] <Tarefa abstrata para o executor resolver LACUNA-001>
 
 **Fase 2 — Construção:**
-[ ] <Implementar nova capability de X>
-[ ] <Integrar a nova área ao fluxo existente>
-[ ] <Garantir aderência ao Design System e padrões observados>
+[ ] <Tarefa orientada a Capability (ex: Criar nova tela na área logged, Integrar mecanismo de navegação). NÃO use nomes de classes não evidenciados.>
 
 **Fase 3 — Validação:**
-[ ] <Validar conformidade arquitetural>
-[ ] <Validar fluxos de navegação e responsividade>
+[ ] <Validar aderência aos padrões e compilação>
 
 **Critérios de Aceite:**
-[ ] <Como validar que o objetivo foi concluído sem falhas técnicas>
+[ ] <O que garante que a tarefa está pronta de forma verificável>
 "
 
     # Gera o plano de forma autônoma sem prender o terminal do usuário em chat iterativo
