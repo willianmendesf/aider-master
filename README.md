@@ -84,7 +84,7 @@ Esta tabela serve como seu documento de consulta rápida para o dia a dia, orden
 | Comando | Descrição Completa e Casos de Uso |
 | :--- | :--- |
 | `bootstrap [modelo]` | **[Pipeline de Extração]** Roda apenas uma vez ou quando o projeto sofrer mudanças drásticas na arquitetura. Detecta a sua stack, aciona o Provider correto, normaliza os dados e gera o `entities.json` e o `graph.json`. **Processamento local (custa 0 tokens).** |
-| `draft-rules [modelo]` | **[Extrator de Padrões]** Analisa o código do projeto existente e extrai automaticamente as regras de projeto, estilo de código e arquitetura, gerando o arquivo imutável `.ai/rules/project-rules.md`. |
+| `draft-rules [modelo] [--context-rows <numero>]` | **[Extrator de Padrões]** Analisa o código do projeto existente e extrai automaticamente as regras de projeto, estilo de código e arquitetura, gerando o arquivo imutável `.ai/rules/project-rules.md`. Por padrão lê 4000 linhas, mas você pode aumentar com `--context-rows` (ex: `--context-rows 12000`). |
 
 ### 2. ⚡ Consultas Rápidas (Investigando o código)
 | Comando | Descrição Completa e Casos de Uso |

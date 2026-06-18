@@ -38,6 +38,9 @@ Você indexou o mapa de arquivos no Passo 1, mas agora a IA precisa saber *como*
 1. **Extrair Regras do Código Existente**:
    ```bash
    draft-rules
+   
+   # Para projetos maiores, aumente a amostra de leitura:
+   draft-rules --context-rows 12000
    ```
    O comando analisará o código de todo o repositório e gerará o arquivo `.ai/rules/project-rules.md`. A partir de hoje, sempre que a IA codar algo, ela respeitará as regras contidas neste arquivo em vez de inventar padrões novos.
 

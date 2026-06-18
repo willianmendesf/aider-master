@@ -626,13 +626,29 @@ standardize() {
 # Modo Extrator de Regras (Draft Rules)
 draft-rules() {
     local modelo="default"
+    local context_rows=4000
+    local agent_args=()
+
     if [ "$#" -gt 0 ] && [[ ! "$1" == -* ]]; then
         modelo="$1"
         shift
     fi
 
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --context-rows)
+                context_rows="$2"
+                shift 2
+                ;;
+            *)
+                agent_args+=("$1")
+                shift
+                ;;
+        esac
+    done
+
     echo "========================================================"
-    echo "🤖 MODO EXTRATOR DE REGRAS INICIADO"
+    echo "🤖 MODO EXTRATOR DE REGRAS INICIADO (Linhas: $context_rows)"
     echo "========================================================"
     
     _init_ai_workspace
@@ -640,18 +656,30 @@ draft-rules() {
     echo "📦 Lendo todos os seus arquivos para entender o padrão (isso pode levar uns segundos)..."
     
     bundle ".ai/.aider-draft-context-full.txt" > /dev/null 2>&1
-    head -n 4000 .ai/.aider-draft-context-full.txt > .ai/.aider-draft-context.txt
+    head -n "$context_rows" .ai/.aider-draft-context-full.txt > .ai/.aider-draft-context.txt
 
     local SKILLS=(
         --read "$AIDER_GLOBAL_DIR/skills/rules-extractor.md"
         --read ".ai/.aider-draft-context.txt"
     )
 
-    # Deleta as regras apenas quando explicitamente rodar o draft (para recriá-las)
-    rm -f .project-rules.md
-    rm -f .ai/rules/project-rules.md
+    local TMP_RULES=".ai/rules/project-rules.tmp.md"
+    local FINAL_RULES=".ai/rules/project-rules.md"
 
-    agent "$modelo" "${SKILLS[@]}" --message "Use o arquivo .ai/.aider-draft-context.txt fornecido para entender o padrão do projeto. Ele contém a árvore de pastas e uma amostra do código-fonte. CRIE o arquivo .ai/rules/project-rules.md DE IMEDIATO. NUNCA faça perguntas." .ai/rules/project-rules.md "$@"
+    # Remove qualquer lixo temporário que tenha ficado antes de iniciar
+    rm -f "$TMP_RULES"
+
+    # Pede para a IA criar no arquivo temporário
+    agent "$modelo" "${SKILLS[@]}" --subtree-only --message "Use o arquivo .ai/.aider-draft-context.txt fornecido para entender o padrão do projeto. Ele contém a árvore de pastas e uma amostra do código-fonte. CRIE o arquivo $TMP_RULES DE IMEDIATO. NUNCA faça perguntas." "$TMP_RULES" "${agent_args[@]}"
+
+    # Só aplica a sobrescrita se a IA tiver gerado o arquivo temporário com sucesso
+    if [ -f "$TMP_RULES" ]; then
+        rm -f .project-rules.md # Limpa o sujo legado na raiz se houver
+        mv "$TMP_RULES" "$FINAL_RULES"
+        echo "✅ Sucesso! As novas regras foram gravadas em $FINAL_RULES."
+    else
+        echo "❌ Falha na geração das regras. O arquivo anterior foi preservado."
+    fi
 }
 
 # ==========================================
