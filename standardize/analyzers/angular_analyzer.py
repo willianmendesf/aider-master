@@ -37,8 +37,20 @@ def analyze(target_path, ref_path=None, examples_path=None):
 
         # Heuristic 2: Methods and sizes
         # Simplified regex for methods: typical pattern `methodName() {`
-        method_pattern = re.compile(r'^\s*(?:public |private |protected )?(?:get |set )?(\w+)\s*\([^)]*\)\s*(?::\s*[^{]+)?\s*\{', re.MULTILINE)
-        methods = list(method_pattern.finditer(content))
+        # Ignores keywords like if, switch, for, while, etc.
+        method_pattern = re.compile(
+            r'^\s*(?:public |private |protected )?(?:get |set )?(?!(?:if|for|while|switch|catch|return|subscribe|pipe|map|filter)\b)([a-zA-Z_]\w*)\s*\([^)]*\)\s*(?::\s*[^{]+)?\s*\{', 
+            re.MULTILINE
+        )
+        # Arrow function handlers
+        arrow_pattern = re.compile(
+            r'^\s*(?:public |private |protected )?(?:readonly\s+)?([a-zA-Z_]\w*)\s*=\s*(?:\([^)]*\)|[a-zA-Z_]\w*)\s*=>\s*\{?', 
+            re.MULTILINE
+        )
+        
+        methods = list(method_pattern.finditer(content)) + list(arrow_pattern.finditer(content))
+        # Sort methods by their starting position in the file to keep the sequence logical for line counting
+        methods.sort(key=lambda m: m.start())
         
         if len(methods) > 15:
             findings.append({
