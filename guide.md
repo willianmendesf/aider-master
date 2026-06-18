@@ -90,7 +90,7 @@ Você precisa trabalhar na feature "appointment". Em vez de adicionar arquivos m
    ```bash
    feature appointment
    ```
-   Mostra o ponto de entrada, fluxo semântico, arquivos relevantes e guia de desenvolvimento.
+   Mostra o ponto de entrada, telas principais, services (incluindo compartilhados), models, endpoints, componentes reutilizados, fluxo principal e lista de todos os arquivos relevantes.
 
 2. **Gerar um relatório explicativo via IA**:
    ```bash
@@ -98,25 +98,37 @@ Você precisa trabalhar na feature "appointment". Em vez de adicionar arquivos m
    ```
    Ou use `--report` (alias para `--ai`).
 
-3. **Abrir diretamente no Aider com todos os arquivos carregados**:
+3. **Abrir diretamente no Aider com contexto completo + onboarding automático**:
    ```bash
    feature appointment --open
    ```
-   Isso abre o Aider com **todos os arquivos relevantes já no contexto**, ex:
+   Isso:
+   - Abre o Aider com **todos os arquivos relevantes carregados** (incluindo reused_components e external_services como `api.service.ts` ou `access-control.service.ts`)
+   - Automaticamente dispara um onboarding que pede para a IA analisar a feature e explicar:
+     1. Objetivo da feature
+     2. Fluxo principal
+     3. APIs consumidas
+     4. Models utilizados
+     5. Arquivos mais importantes
+     6. Pontos de extensão
+     7. Riscos de alteração
+     - Sem escrever código!
+   
+   Exemplo de arquivos carregados:
    - `appointments.component.ts`
    - `appointment.model.ts`
    - `appointment-execution-log.model.ts`
    - `appointment-schedule.interface.ts`
    - `modal.component.ts`
    - `datatable.component.ts`
+   - `api.service.ts`
+   - `access-control.service.ts`
    - E as regras (`project-rules.md`, `clean-code.md`).
 
-   Agora você pode simplesmente conversar diretamente com a IA sobre a feature!
+   Depois do onboarding automático, você pode simplesmente conversar diretamente com a IA!
    Exemplos de perguntas:
-   - Explique como funciona essa feature.
-   - Me mostre o fluxo completo dessa tela.
    - Onde eu preciso mexer para adicionar um novo campo "priority" no appointment?
-   - Quero adicionar um botão para duplicar um appointment existente. Primeiro analise a arquitetura atual e me diga quais arquivos serão alterados. Não escreva código ainda.
+   - Quero adicionar um botão para duplicar um appointment existente.
 
 4. **Planeje a Mudança como um Tech Lead (se precisar de plano formal)**:
    ```bash

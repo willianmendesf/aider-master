@@ -92,7 +92,7 @@ Esta tabela serve como seu documento de consulta rápida para o dia a dia, orden
 | `where <nome>` | **[Onde Está?]** Retorna a localização exata (Arquivo e Linha) de forma limpa. Se houver múltiplos, exibe uma lista numerada. |
 | `discover <nome> [--tree]` | **[O Que É Isso?]** Raio-X do componente sem LLM. Inferência de Feature, lista de Models/Services que utiliza e um laudo de Saúde Arquitetural (risco de acoplamento). A flag `--tree` desenha a hierarquia ASCII. |
 | `impact <nome>` | **[O Que Quebra?]** Navega no Grafo e lista consumidores exatos. Avalia o Risco e emite uma **RECOMENDAÇÃO TÁTICA** (Pode alterar / Não altere) sugerindo o que deve ser testado em regressão. |
-| `feature <nome> [--open | --ai]` | **[Contexto Cirúrgico]** Monta a arquitetura limpa da feature (sem ruídos de infra), listando Ponto de Entrada, Fluxo Semântico e um **Guia de Desenvolvimento**. Com a flag `--open`, lança o Aider cirurgicamente restrito a estes arquivos. A flag `--ai` força o LLM a explicar a feature. |
+| `feature <nome> [--open | --ai | --report]` | **[Contexto Cirúrgico Completo]**<br>- **Sem flags**: Mostra ponto de entrada, fluxo principal, services, models, componentes reutilizados e lista de todos os arquivos relevantes<br>- `--ai` ou `--report`: Gera relatório explicativo via IA<br>- `--open`: Abre o Aider com **todos os arquivos relevantes carregados** (incluindo reused_components e external_services) e automaticamente dispara um onboarding que analisa a feature e responde com objetivo, fluxo, APIs, models, arquivos importantes, pontos de extensão e riscos de alteração (sem escrever código) |
 
 ### 3. 🧠 Decisão e Planejamento (Pensando antes de codar)
 | Comando | Descrição Completa e Casos de Uso |
