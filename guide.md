@@ -6,14 +6,14 @@ O grande diferencial desta versão é que você **não precisa mais ser o "RAG h
 
 ---
 
-## 🔄 Cenários de Trabalho Reais
+## 🔄 Cenários de Trabalho Reais (Ordem Cronológica de Uso)
 
-Abaixo estão os cenários de rotina do desenvolvedor. Aprenda a usar o *Knowledge Extraction Pipeline* a seu favor.
+Abaixo estão os cenários de rotina organizados na ordem natural de evolução do seu trabalho: do dia em que você entra no projeto até o deploy.
 
 ---
 
-### Cenário 1: Cheguei num Projeto Novo (ETL Inicial)
-Você acabou de clonar o repositório ou o time decidiu instaurar o Aider OS no projeto atual.
+### Cenário 1: Cheguei num Projeto Novo (Setup Inicial)
+Você acabou de clonar o repositório ou o time decidiu instaurar o Aider OS no projeto atual. Antes de codar, você precisa ensinar o sistema a ler a estrutura.
 
 1. **Rode o comando de diagnóstico (Opcional, mas útil)**:
    ```bash
@@ -25,117 +25,141 @@ Você acabou de clonar o repositório ou o time decidiu instaurar o Aider OS no 
    ```bash
    bootstrap
    ```
-   O Aider OS não chamará o LLM. Ele rodará as ferramentas detectadas, normalizará a saída e criará um poderoso banco relacional local em `.ai/knowledge/entities.json` e `.ai/knowledge/graph.json`. O projeto agora está indexado.
+   O Aider OS não chamará o LLM. Ele rodará as ferramentas detectadas, normalizará a saída e criará um poderoso banco relacional local em `.ai/knowledge/entities.json` e `.ai/knowledge/graph.json`. O projeto agora está indexado localmente e instantaneamente pesquisável.
 
-4. **(Opcional) Inicialize com Templates**:
+3. **(Opcional) Inicialize com Templates**:
    Se o projeto ainda não tem a estrutura `.ai/`, copie os templates da pasta `templates/aider-os/` para a raiz do seu projeto.
 
 ---
 
-### Cenário 2: Perdi o Pé do Chão! Onde fica essa classe?
-Você quer encontrar a localização exata de um Service ou Model no disco sem precisar de IDE pesada ou usar LLM para "achar o arquivo".
+### Cenário 2: Extrair e Fixar Regras de Arquitetura Automáticas
+Você indexou o mapa de arquivos no Passo 1, mas agora a IA precisa saber *como* o time programa (Padrões, bibliotecas, nomenclaturas).
 
-1. **Consulta Rápida**:
+1. **Extrair Regras do Código Existente**:
+   ```bash
+   draft-rules
+   ```
+   O comando analisará o código de todo o repositório e gerará o arquivo `.ai/rules/project-rules.md`. A partir de hoje, sempre que a IA codar algo, ela respeitará as regras contidas neste arquivo em vez de inventar padrões novos.
+
+---
+
+### Cenário 3: Onde fica essa classe? (Investigação Rápida)
+O projeto está configurado. O chefe mandou arrumar a classe "FinanceiroService", mas você não sabe onde ela está num projeto de 5000 arquivos. 
+
+1. **Localização Exata**:
    ```bash
    where FinanceiroService
    ```
-   Resposta em 500ms apontando o arquivo exato e a linha, lendo direto do `entities.json`.
+   Resposta em milissegundos apontando o arquivo exato e a linha. Custo zero de tokens.
 
 2. **Descobrindo Detalhes (Grau de Confiança)**:
    ```bash
    discover Proposta
    ```
-   Informa o arquivo, o tipo (model, component, endpoint) e o grau de confiança (ex: 100% de confiança se foi extraído por LSP/Compodoc, ou 70% se for via fallback Repomix).
+   Informa o arquivo, o tipo (model, component, endpoint) e como ele foi encontrado.
 
 ---
 
-### Cenário 3: Preciso alterar um Serviço. O que vou quebrar?
+### Cenário 4: O que vou quebrar se eu mudar isso? (Análise de Impacto)
 A dor clássica: "Se eu alterar a assinatura do `gerarBoleto()`, quais telas vão parar de funcionar?".
 
 1. **Navegue pelas arestas do Grafo Instantaneamente**:
    ```bash
    impact FinanceiroService
    ```
-   O comando não usa tokens de IA. Ele lê o `graph.json` em ordem reversa (`used_by`) e lista exatamente todos os Componentes, Módulos e Controllers que dependem de `FinanceiroService`. Você descobre o raio de quebra instantaneamente.
+   Lê o `graph.json` em ordem reversa (`used_by`) e lista todos os Componentes, Módulos e Controllers que dependem da classe. Você descobre o raio de quebra instantaneamente sem acionar a IA.
 
 ---
 
-### Cenário 4: Desenvolvendo uma Nova Feature Baseada no Legado
-Você precisa criar uma "Nova Proposta Previdência". Em vez de colocar todos os 500 arquivos do módulo no prompt e deixar a IA confusa e alucinando, você atua como um cirurgião.
+### Cenário 5: Desenvolvendo uma Nova Feature Baseada no Legado
+Você precisa criar uma "Nova Proposta Previdência". Em vez de colocar todos os 500 arquivos do módulo no prompt e deixar a IA confusa, você atua como um cirurgião.
 
 1. **Monte o Contexto Cirurgicamente**:
    ```bash
    feature previdencia
    ```
-   O sistema varre os JSONs, cruza os serviços da tela de previdencia usando o Grafo de Dependências, e isola apenas os 5 ou 6 arquivos relevantes. O Aider usará ESSE minúsculo e focado relatório para entender a feature.
+   O sistema varre os JSONs, cruza os serviços da tela de previdencia usando o Grafo de Dependências, e isola apenas os 5 ou 6 arquivos relevantes. 
 
-2. **Planeje a Mudança e Programe**:
+2. **Planeje a Mudança como um Tech Lead**:
    ```bash
    plan "Adicionar regra de desconto na Nova Proposta Previdência"
+   ```
+   A IA fatiará a feature em pequenas tarefas de código num arquivo `PLAN-001.md`.
+
+3. **Programe as Tarefas (O Método Guiado)**:
+   ```bash
    dev .ai/plans/PLAN-001.md
    ```
+   A IA executará o plano de forma focada e cega a distrações.
 
 ---
 
-### Cenário 5: Garantir a Qualidade da Entrega
-Mudança feita. Hora de garantir que ninguém feriu os padrões.
+### Cenário 6: Desenvolvimento Livre (Mão na Massa Direto)
+Se a sua tarefa é pequena e não exige um "Plano Oficial", você pode codar e gerar arquivos livremente numa sessão interativa, usando o `agent` principal.
+
+1. **Inicie o Agente de Desenvolvimento**:
+   ```bash
+   agent
+   ```
+   Isso abre a sessão do Aider já com o `repo-map` carregado.
+
+2. **Adicione Contexto no Chat**:
+   Descobriu com o `where` que o arquivo é o `proposta.service.ts`? Adicione-o à conversa:
+   ```text
+   /add src/services/proposta.service.ts
+   ```
+
+3. **Gere Código e Arquivos**:
+   Basta pedir em linguagem natural na sessão:
+   ```text
+   > crie um novo arquivo de Utils para datas e refatore o PropostaService para usá-lo.
+   ```
+   O Aider irá criar o arquivo, escrever o código, e aplicar a mudança. Como desativamos commits automáticos (`--no-auto-commits`), você revisa tudo no seu VSCode antes de commitar!
+
+---
+
+### Cenário 7: Investigando um Bug em Produção
+O sistema quebrou, e você tem apenas a mensagem de erro.
+
+1. **Inicie a Investigação de Causa Raiz**:
+   ```bash
+   debug
+   ```
+   O comando carrega as skills de `root-cause-analysis.md` e `bug-hunter.md`. Cole o erro do console, e a IA cruzará o log com o repo-map para encontrar a linha exata que está causando pânico, sem sugerir gambiarras.
+
+---
+
+### Cenário 8: Garantir a Qualidade da Entrega (Antes do Deploy)
+Mudança feita e bug corrigido. Hora de garantir que ninguém feriu os padrões corporativos.
 
 1. **Limpeza e Auditoria**:
    ```bash
    standardize src/app/nova-proposta --audit
    code-review src/app/nova-proposta
    ```
-   A IA verifica os padrões do seu `.ai/examples/` (Golden Path) e pune a entrega em caso de dívidas técnicas introduzidas, bloqueando a ida pra produção de lixo no código.
+   A IA verifica os padrões do seu `project-rules.md` e do `Golden Path`, punindo a entrega em caso de dívidas técnicas introduzidas, bloqueando lixo no código.
 
 ---
 
-### Cenário 6: Modo Ask (Perguntas Rápidas)
-Você tem uma dúvida rápida sobre o código, sem precisar editar nada.
+### Cenário 9: Modo Ask (Perguntas Rápidas ao Longo do Dia)
+Você tem uma dúvida conceitual sobre o código, sem precisar editar nada.
 
 1. **Modo Ask Genérico**:
    ```bash
    ask
    ```
-   Ou use um modelo específico:
-   ```bash
-   ask gpt-4o
-   ```
 
-2. **Modo Ask Especializados**:
-   - `ask-refactor`: Para perguntas sobre refatoração
-   - `ask-migration`: Para perguntas sobre migração de tecnologia
-   - `ask-enterprise`: Para perguntas completas (segurança, performance, governança)
-   - `study`: Modo Ask sem Git (ideal para estudo)
-
----
-
-### Cenário 7: Investigando um Bug
-Você tem um problema e precisa encontrar a causa raiz.
-
-1. **Inicie o Investigação**:
-   ```bash
-   debug
-   ```
-   O comando carrega as skills de `root-cause-analysis.md` e `bug-hunter.md` para ajudar a encontrar o problema.
-
----
-
-
-
-### Cenário 9: Extrair Regras de Projeto Automaticamente
-Você entrou em um projeto novo e quer entender as regras de código e arquitetura.
-
-1. **Extrair Regras**:
-   ```bash
-   draft-rules
-   ```
-   O comando analisará o código e gerará `.ai/rules/project-rules.md` com as regras de projeto, coding style e arquitetura.
+2. **Modos Ask Especializados**:
+   - `ask-refactor`: Para perguntas de refatoração ("Como deixar esse while mais eficiente?")
+   - `ask-migration`: Dúvidas sobre upgrade de versão ("Como migrar isso pra Angular 18?")
+   - `ask-enterprise`: Foco em segurança e performance.
+   - `study`: Modo Ask sem alterar o Git (ideal para aprender a linguagem).
 
 ---
 
 ## 🗺️ Usando o Repo-Map Nativo
 
-Para ver o repo-map gerado automaticamente pelo Aider:
+Durante qualquer conversa, o Aider constrói o mapa estrutural automaticamente:
 1. **Na sessão do Aider**: use `/map` ou `/map-refresh`
 2. **No terminal**: execute `aider --show-repo-map`
 
@@ -147,9 +171,4 @@ O repo-map é mantido automaticamente e não requer manutenção manual.
 
 A grande mensagem do Aider OS v2.0 é: **Ferramentas consagradas (LSP, AST, OpenAPI, repo-map nativo) extraem os metadados muito melhor que LLMs lendo texto corrido.**
 
-Ao adotar o fluxo `bootstrap` → `where` → `impact` → `feature` → `dev`, você deixa de terceirizar a arquitetura mental do sistema para uma IA cara e lenta. O seu repositório ganha uma Memória Operacional local rápida, e a IA faz apenas aquilo que faz de melhor: programar dentro de um contexto pequeno, controlado e livre de alucinações.
-
----
-
-## 📚 Comandos de Referência Rápida
-Para uma lista completa de todos os comandos, skills, integrações e MCP, consulte o arquivo [README.md](./README.md).
+Ao adotar o fluxo `bootstrap` → `draft-rules` → `where` → `impact` → `plan` → `dev`, você deixa de terceirizar a arquitetura mental do sistema para uma IA cara e lenta. O seu repositório ganha uma Memória Operacional local rápida, e a IA faz apenas aquilo que faz de melhor: programar dentro de um contexto pequeno, controlado e livre de alucinações.

@@ -640,7 +640,7 @@ draft-rules() {
     echo "📦 Lendo todos os seus arquivos para entender o padrão (isso pode levar uns segundos)..."
     
     bundle ".ai/.aider-draft-context-full.txt" > /dev/null 2>&1
-    head -n 6000 .ai/.aider-draft-context-full.txt > .ai/.aider-draft-context.txt
+    head -n 4000 .ai/.aider-draft-context-full.txt > .ai/.aider-draft-context.txt
 
     local SKILLS=(
         --read "$AIDER_GLOBAL_DIR/skills/rules-extractor.md"
