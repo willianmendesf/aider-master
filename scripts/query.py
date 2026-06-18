@@ -512,51 +512,78 @@ def cmd_feature(args):
                     feature_ids.add(d)
                     if d_ent.get("file"): arquivos.add(d_ent.get("file"))
 
+    # Ocultar infra/utils do fluxo principal (variáveis, constantes, helpers)
+    infra_utils = []
+    
     print(f"FEATURE: {args[0].capitalize()}\n")
     
     if telas:
-        print("TELAS")
+        print("TELAS (Ponto de Entrada)")
         for t in sorted(telas, key=lambda x: x.get("name")):
             print(f"- {t.get('name')}\n  {t.get('file')}")
         print("")
         
     all_services = services + list(external_services.values())
     if all_services:
-        print("SERVICES")
+        print("SERVICES (Regras de Negócio / Integração)")
         for s in sorted(all_services, key=lambda x: x.get("name")):
             print(f"- {s.get('name')}")
         print("")
         
     if models:
-        print("MODELS")
+        print("MODELS (Domínio / Contratos)")
         for m in sorted(models, key=lambda x: x.get("name")):
             print(f"- {m.get('name')}")
         print("")
         
     if reused_components:
-        print("COMPONENTES REUTILIZADOS")
+        print("COMPONENTES REUTILIZADOS (UI Compartilhada)")
         for c in sorted(reused_components.values(), key=lambda x: x.get("name")):
             print(f"- {c.get('name')}")
         print("")
         
-    print("FLUXO")
+    print("FLUXO PRINCIPAL (Arquitetura)")
     for tela in sorted(telas, key=lambda x: x.get("name")):
-        print(tela.get("name"))
-        tdeps = sorted(list(tela_deps.get(tela.get("id"), [])))
-        for i, d in enumerate(tdeps):
-            is_last = (i == len(tdeps) - 1)
-            prefix = " └── " if is_last else " ├── "
-            print(f"{prefix}{d}")
-    print("")
+        print(f"[TELA] {tela.get('name')}")
+        
+        tdeps = tela_deps.get(tela.get("id"), set())
+        
+        # Categorizar para o fluxo
+        f_services = [ent_by_id[d].get('name') for d in tdeps if d in ent_by_id and ent_by_id[d].get('type') == 'service']
+        f_models = [ent_by_id[d].get('name') for d in tdeps if d in ent_by_id and ent_by_id[d].get('type') in ('model', 'interface', 'class')]
+        f_ui = [ent_by_id[d].get('name') for d in tdeps if d in ent_by_id and ent_by_id[d].get('type') in ('component', 'directive') and d != tela.get('id')]
+        
+        if f_services:
+            print(" │\n ├── [INTEGRA/CHAMA]")
+            for s in sorted(f_services):
+                print(f" │     └── {s}")
+                
+        if f_models:
+            print(" │\n ├── [MANIPULA DADOS]")
+            for m in sorted(f_models):
+                print(f" │     └── {m}")
+                
+        if f_ui:
+            print(" │\n └── [RENDERIZA COM]")
+            for u in sorted(f_ui):
+                print(f"       └── {u}")
+        print("")
     
-    print("ARQUIVOS RELEVANTES")
+    print("ARQUIVOS RELEVANTES (Caminho Completo)")
     for i, f in enumerate(sorted(arquivos), 1):
-        # Exibe o basename em evidência e o path completo depois (opcional), ou só o path como o usuário sugeriu
-        basename = f.split("/")[-1] if "/" in f else f
-        print(f"{i}. {basename}")
+        print(f"{f}")
         
     print(f"\nTOTAL DE CONTEXTO:\n{len(arquivos)} arquivos\n")
-    print("Copie estes caminhos e entregue ao Aider para um contexto cirúrgico perfeito.")
+
+    # Gerar arquivo TXT para automação do Aider
+    try:
+        import os
+        os.makedirs(".ai/cache", exist_ok=True)
+        with open(".ai/cache/feature_files.txt", "w", encoding="utf-8") as f:
+            for arq in sorted(arquivos):
+                f.write(arq + "\n")
+    except Exception as e:
+        pass
 
 def main():
     if len(sys.argv) < 2:

@@ -497,11 +497,13 @@ feature() {
     shift
     
     local USE_AI=0
+    local OPEN_AIDER=0
     local modelo="default"
     
     while [[ "$#" -gt 0 ]]; do
         case $1 in
             --ai|--report) USE_AI=1 ;;
+            --open) OPEN_AIDER=1 ;;
             *) modelo="$1" ;;
         esac
         shift
@@ -518,9 +520,18 @@ feature() {
     if [ "$USE_AI" -eq 1 ]; then
         local SKILLS=("${BASE_SKILLS[@]}")
         echo "🤖 Gerando relatório explicativo da feature via IA..."
-        agent "$modelo" "${SKILLS[@]}" --read ".ai/cache/feature_context.md" --message "Aja como Arquiteto de Software. Usando APENAS o contexto fornecido em .ai/cache/feature_context.md, gere um relatório detalhado da Feature '$ALVO', navegando no grafo para explicar o fluxo e o propósito. Formate em Markdown claro." "$@"
+        agent "$modelo" "${SKILLS[@]}" --read ".ai/cache/feature_context.md" --message "Aja como Arquiteto de Software. Usando APENAS o contexto fornecido em .ai/cache/feature_context.md, gere um relatório detalhado da Feature '$ALVO', navegando no grafo para explicar o fluxo e o propósito. Formate em Markdown claro."
     else
         cat .ai/cache/feature_context.md
+    fi
+
+    if [ "$OPEN_AIDER" -eq 1 ]; then
+        if [ -s ".ai/cache/feature_files.txt" ]; then
+            echo "🚀 Abrindo Aider com contexto focado..."
+            agent "$modelo" "${BASE_SKILLS[@]}" $(cat .ai/cache/feature_files.txt)
+        else
+            echo "⚠️ Nenhum arquivo encontrado para abrir no Aider."
+        fi
     fi
 }
 
