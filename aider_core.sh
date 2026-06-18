@@ -155,10 +155,12 @@ plan() {
 
     local modelo="default"
     local OPEN_AIDER=0
+    local USE_FEATURE_CONTEXT=0
     
     while [[ "$#" -gt 0 ]]; do
         case $1 in
             --open) OPEN_AIDER=1 ;;
+            --feature) USE_FEATURE_CONTEXT=1 ;;
             --model) 
                 modelo="$2"
                 shift ;;
@@ -172,10 +174,11 @@ plan() {
         --read "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
     )
 
-    # Integração com o Knowledge Graph: Consome a última feature analisada
-    if [ -s ".ai/cache/feature_context.md" ]; then
-        echo "🔗 Contexto tático detectado (.ai/cache/feature_context.md). Injetando no plano..."
+    if [ "$USE_FEATURE_CONTEXT" -eq 1 ] && [ -s ".ai/cache/feature_context.md" ]; then
+        echo "🔗 Contexto tático da feature detectado. Injetando no plano..."
         SKILLS+=(--read ".ai/cache/feature_context.md")
+    else
+        echo "🌐 Modo de Planejamento Global Ativo (isolado do contexto tático)."
     fi
 
     echo "🗺️ Atuando como Tech Lead para fatiar o Plano de Ação..."
@@ -192,66 +195,85 @@ plan() {
     local PLANO_ARQUIVO=".ai/plans/${NOME_PLANO}.md"
     touch "$PLANO_ARQUIVO"
 
-    local PLAN_PROMPT="Atue como Tech Lead Sênior do Projeto. Demanda: $DEMANDA.
-SEU ESCPO É GLOBAL. Você é responsável por definir 'Qual é a forma correta de implementar isso NESTE projeto?', baseando-se nas EVIDÊNCIAS reais do repositório, regras e padrões.
-NÃO USE CONHECIMENTO GENÉRICO DE FRAMEWORK. Suas justificativas devem citar nomes de arquivos e componentes que você realmente viu no mapa do repositório.
-NÃO GERE CÓDIGO FONTE. 
-NÃO INVENTE arquivos que você não tem certeza que existem (use a tag [DESCOBRIR]). Arquivos novos com nome previsível devem usar a tag [NOVO].
+    local PLAN_PROMPT="Atue como Tech Lead Sênior do Projeto e Planejador Arquitetural. Demanda: $DEMANDA.
 
-Analise o repositório, o repo-map e o contexto da feature injetado (se aplicável).
+REGRA CRÍTICA - PROIBIÇÃO DE IMPLEMENTAÇÃO:
+O comando PLAN é estritamente um gerador de planejamento. É PROIBIDO:
+* Criar código ou arquivos de implementação
+* Alterar código existente
+* Aplicar patches ou gerar diffs
+* Produzir blocos SEARCH/REPLACE para arquivos .ts, .html, .css, etc.
+O único artefato permitido para edição é: $PLANO_ARQUIVO.
+Se você identificar uma solução técnica, registre-a como DECISÃO ARQUITETURAL ou RECOMENDAÇÃO TÉCNICA. NUNCA tente aplicá-la.
+
+SEU ESCOPO É ESTRATÉGICO. O objetivo é reduzir o risco de implementação.
+REGRAS OBRIGATÓRIAS ADICIONAIS:
+1. O plano NÃO deve pedir arquivos adicionais ao usuário.
+2. O plano NÃO deve interromper geração por falta de contexto. Registre a incerteza como LACUNA, crie tarefa de descoberta e siga.
+3. NÃO liste tarefas triviais (ex: 'criar componente', 'adicionar rota'). Essas são tarefas de Dev. Suas tarefas devem ser em nível de capability.
+4. É proibido inventar caminhos de arquivos. Se não achou evidência concreta, use a tag [DESCOBRIR].
+5. O plano deve responder: O que será feito? Por que será feito? Onde? Quais riscos? Como validar?
+
+Analise o repositório, o repo-map e o contexto injetado (se ativado).
 Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdown:
 
 # $NOME_PLANO
 
-**Fontes Utilizadas:**
-- [x] Conhecimento Global (Repo Map / Estrutura do Projeto)
-- [x] Diretrizes e Regras (.ai/rules)
-- [ ] Contexto Tático Específico (feature_context.md - marque 'x' se você leu dados desse arquivo para esta demanda)
-
 **Objetivo:**
-<Objetivo direto e claro>
+<O que será feito e por que>
 
-**Confiança do Plano:**
-- Confiança Geral: <0 a 100%>
-- Evidências:
-  ✓ <Fato 1 observado no projeto, ex: Componentes estão na pasta X>
-  ✓ <Fato 2 observado no projeto>
-- Incertezas:
-  ⚠ <O que você não sabe e o desenvolvedor precisará descobrir, ex: Nome exato do arquivo de rotas>
+## 1. Conhecimento e Evidências
 
-**Evidências Arquiteturais (Observações do Projeto):**
-- Componentes base: <Ex: AppointmentsComponent, DashboardComponent (cite nomes reais)>
-- Padrão Estrutural: <Ex: pages/<area>/<feature>/ (Mostre a estrutura de pastas real)>
+**Evidências Observadas no Projeto:**
+EVID-001
+- Arquivo: <Caminho absoluto do arquivo real encontrado>
+- Observação: <Fato observado. Ex: standalone: true>
+- Conclusão: <O que o fato significa>
+- Confiança: <100% (evidenciado) ou % menor (inferido)>
 
-**Decisões Tomadas:**
-- Decisão: <Ex: Criar componente standalone>
-  Motivo: <Baseado no padrão visto em X e Y>
-- Decisão: <Ex: Não criar service novo>
-  Motivo: <O escopo é apenas visual>
+## 2. Lacunas de Conhecimento (Incertezas)
 
-**Tríade de Gestão:**
-- Complexidade: <BAIXA | MÉDIA | ALTA | EXTREMA>
-- Estimativa: <XS (15-30m) | S (1-2h) | M (Meio dia) | L (1-2 dias) | XL (Semana)>
-- Risco: <BAIXO | MÉDIO | ALTO> (Motivo: <Justifique o risco>)
+LACUNA-001
+- Descrição: <O que não foi encontrado>
+- Impacto: <BAIXO | MÉDIO | ALTO>
+- Bloqueia: <Qual ação arquitetural está pendente disso>
+- Resolução: <Objetivo da descoberta. Ex: 'Validar padrão de roteamento'>
 
-**Arquivos Impactados:**
-[NOVO] caminho/para/novo/arquivo.ts (Para arquivos que devem ser criados)
-[ALTERAÇÃO] caminho/para/arquivo/existente.ts
-[DESCOBRIR] <Para peças de infra/roteamento que você sabe que existem, mas não tem certeza do nome>
+## 3. Decisões Arquiteturais
+
+DECISÃO-001
+- O Que: <Ex: Utilizar padrão standalone>
+- Evidência Base: <EVID-001>
+- Motivo: <Justificativa técnica baseada na evidência>
+- Confiança: <%>
+
+## 4. Tríade de Gestão
+- **Complexidade:** <BAIXA | MÉDIA | ALTA | EXTREMA>
+- **Estimativa:** <XS (15-30m) | S (1-2h) | M (Meio dia) | L (1-2 dias) | XL (Semana)>
+- **Risco:** <BAIXO | MÉDIO | ALTO>
+- **Impacto Esperado:** <Quais áreas, consumidores ou fluxos de dependência do projeto podem ser afetados>
+
+## 5. Arquivos Relevantes
+[EVIDENCIADO] <Arquivo base que servirá de Golden Path>
+[DESCOBRIR] <Arquivo que o dev precisa mapear na fase de descoberta>
+
+## 6. Plano de Ação (Arquitetural)
 
 **Fase 1 — Descoberta:**
-[ ] <Localizar X>
-[ ] <Confirmar Y>
+[ ] <Validar padrão arquitetural Y>
+[ ] <Identificar mecanismo existente de X>
 
-**Fase 2 — Implementação:**
-[ ] <Ação técnica 1>
-[ ] <Ação técnica 2>
+**Fase 2 — Construção:**
+[ ] <Implementar nova capability de X>
+[ ] <Integrar a nova área ao fluxo existente>
+[ ] <Garantir aderência ao Design System e padrões observados>
 
 **Fase 3 — Validação:**
-[ ] <Validação 1>
+[ ] <Validar conformidade arquitetural>
+[ ] <Validar fluxos de navegação e responsividade>
 
-**Critério de Aceite:**
-[ ] <Condição 1>
+**Critérios de Aceite:**
+[ ] <Como validar que o objetivo foi concluído sem falhas técnicas>
 "
 
     # Gera o plano de forma autônoma sem prender o terminal do usuário em chat iterativo
