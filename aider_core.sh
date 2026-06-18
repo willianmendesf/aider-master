@@ -220,7 +220,7 @@ REGRAS OBRIGATÓRIAS ADICIONAIS:
    - PASSO 3: Inspecione arquivos de roteamento, registro, bootstrap ou composição relacionados ao alvo.
    - PASSO 4: Identifique pelo menos 3 evidências concretas. Uma evidência concreta obrigatoriamente deve apontar: arquivo real, caminho completo e existente no repositório. NÃO SÃO ACEITOS como evidência da feature: diretórios, módulos genéricos, project-rules.md, repo-map, shared/*, utilitários, serviços globais. Se menos de 3 evidências concretas reais forem encontradas: NÃO emita DECISÃO, crie apenas LACUNAS.
 5. REGRA DE EVIDÊNCIA FORTE: Uma decisão arquitetural somente pode ser emitida quando existir evidência direta (conforme PASSO 4). Não são suficientes: convenções presumidas da tecnologia ou conhecimento prévio do modelo. Se não existir evidência direta: NÃO crie DECISÃO. Crie HIPÓTESE ou LACUNA.
-6. REGRA DE PAPEL (SEM VERBOS DE IMPLEMENTAÇÃO): O Planejador não descreve implementação. É proibido utilizar verbos como: 'criar', 'implementar', 'codificar', 'registrar', 'alterar', 'compilar' ou 'executar' nas tarefas do plano. Substitua por: 'identificar', 'mapear', 'analisar', 'validar', 'descobrir', 'documentar', 'definir estratégia', 'levantar evidências'. O plano deve permanecer válido mesmo sem conhecer a tecnologia utilizada.
+6. REGRA DE PAPEL (FOCO EM ENGENHARIA, NÃO EM GESTÃO): O Planejador mapeia a engenharia, não codifica. Você PODE usar verbos técnicos para descrever O QUE será construído (ex: 'Criar capability de página autenticada', 'Integrar nova rota', 'Apontar arquivos prováveis'), mas É PROIBIDO instruir COMO implementar (não descreva assinaturas, não dite conteúdo interno, não sugira diffs). O plano deve ser detalhado e técnico, guiando o desenvolvedor sem prender suas decisões de código.
 7. LINGUAGEM SECA E DIRETA: Não expanda com benefícios ou contextos organizacionais (equipe, aprovações).
 8. CRITÉRIOS DE ACEITE TESTÁVEIS: Use fatos concretos ('rota acessível', 'interface carregada sem erros').
 9. PROPORCIONALIDADE: Demandas simples exigem checklist curto.
@@ -237,7 +237,7 @@ Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdo
 
 **Evidências Observadas no Projeto:**
 EVID-001
-- Arquivo: <Caminho absoluto do arquivo real encontrado - SÓ ARQUIVOS RELEVANTES DE ALTA/MÉDIA PROXIMIDADE>
+- Arquivo: <Caminho absoluto do código fonte. PROIBIDO usar project-rules.md, repo-map, diretórios, utilitários, ou shared/>
 - Trecho Evidenciado: <Código ou configuração exata encontrada no arquivo provando o fato>
 - Impacto: <O que o trecho provado significa para a demanda atual>
 - Relevância: <ALTA | MÉDIA | BAIXA>
@@ -278,7 +278,7 @@ DECISÃO-001
 [ ] <Tarefa abstrata para o executor resolver LACUNA-001>
 
 **Fase 2 — Construção:**
-[ ] <Tarefa orientada a Capability (ex: Mapear necessidade de nova tela na área logged, Definir estratégia de navegação). NÃO use verbos de implementação ou nomes de classes.>
+[ ] <Tarefa técnica orientada a Capability (ex: Criar nova tela na área logged, Integrar mecanismo de navegação). Liste os 'Arquivos prováveis' abaixo da tarefa. NÃO forneça implementação interna.>
 
 **Fase 3 — Validação:**
 [ ] <Validar aderência aos padrões e requisitos>
@@ -345,7 +345,7 @@ dev() {
     )
 
     echo "🔨 Iniciando Motor de Execução Seguro baseado em: $PLANO..."
-    agent "$modelo" "${SKILLS[@]}" --read "$PLANO" --message "Atue como Desenvolvedor (Dev Golden Path). Leia o plano fornecido e execute EXATAMENTE as tarefas designadas. NUNCA invente novos padrões arquiteturais, procure por referências no código existente. Atualize o arquivo do plano marcando as tarefas concluídas com [x]. Assine suas criações com a rastreabilidade do PLANO/ADR." "$@"
+    agent "$modelo" "${SKILLS[@]}" --file "$PLANO" --message "Atue como Desenvolvedor (Dev Golden Path). Leia o plano fornecido e execute EXATAMENTE as tarefas designadas. NUNCA invente novos padrões arquiteturais, procure por referências no código existente. Atualize o arquivo do plano marcando as tarefas concluídas com [x]. Para as tarefas de Descoberta (Fase 1), você OBRIGATORIAMENTE deve escrever o resultado da descoberta (rotas, arquivos, padrões encontrados) ao lado ou abaixo da tarefa concluída, não apenas marque o [x]. Assine suas criações com a rastreabilidade do PLANO/ADR." "$@"
 }
 
 # Modo Ask
