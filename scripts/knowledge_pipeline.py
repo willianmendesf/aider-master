@@ -67,7 +67,10 @@ class ToolCatalog:
 
 class CompodocProvider:
     def normalize(self, outputs: List[str], tool: Dict) -> List[Entity]:
-        entities = []
+        import re
+        entities_dict = {}
+        raw_items = []
+
         for output in outputs:
             if not os.path.exists(output):
                 continue
@@ -77,39 +80,48 @@ class CompodocProvider:
                 except Exception:
                     continue
             
-            # Simplified normalization for Compodoc
-            # Compodoc JSON format has components, injectables (services), modules
             for comp in data.get("components", []):
-                entities.append(Entity(
-                    id=comp.get("name", ""),
-                    name=comp.get("name", ""),
-                    type="component",
-                    file=comp.get("file", ""),
-                    line=comp.get("line", 0),
-                    source=tool.get("name", "Compodoc"),
-                    confidence=tool.get("confidence", 100)
-                ))
+                raw_items.append((comp, "component"))
             for srv in data.get("injectables", []):
-                entities.append(Entity(
-                    id=srv.get("name", ""),
-                    name=srv.get("name", ""),
-                    type="service",
-                    file=srv.get("file", ""),
-                    line=srv.get("line", 0),
-                    source=tool.get("name", "Compodoc"),
-                    confidence=tool.get("confidence", 100)
-                ))
+                raw_items.append((srv, "service"))
             for mod in data.get("modules", []):
-                entities.append(Entity(
-                    id=mod.get("name", ""),
-                    name=mod.get("name", ""),
-                    type="module",
-                    file=mod.get("file", ""),
-                    line=mod.get("line", 0),
-                    source=tool.get("name", "Compodoc"),
-                    confidence=tool.get("confidence", 100)
-                ))
-        return entities
+                raw_items.append((mod, "module"))
+        
+        for item, etype in raw_items:
+            name = item.get("name", "")
+            if not name:
+                continue
+            
+            ent = Entity(
+                id=name,
+                name=name,
+                type=etype,
+                file=item.get("file", ""),
+                line=item.get("line", 0) or 0,
+                source=tool.get("name", "Compodoc"),
+                confidence=tool.get("confidence", 100)
+            )
+            entities_dict[name] = {"ent": ent, "code": item.get("sourceCode", "")}
+
+        names = list(entities_dict.keys())
+        for name, obj in entities_dict.items():
+            ent = obj["ent"]
+            code = obj["code"]
+            if not code:
+                continue
+            
+            for other in names:
+                if other == name:
+                    continue
+                # Busca exata de palavra para evitar falso positivo (ex: 'App' dando match em 'Appointment')
+                if re.search(r'\b' + re.escape(other) + r'\b', code):
+                    if other not in ent.uses:
+                        ent.uses.append(other)
+                    other_ent = entities_dict[other]["ent"]
+                    if name not in other_ent.used_by:
+                        other_ent.used_by.append(name)
+
+        return [obj["ent"] for obj in entities_dict.values()]
 
 class OpenAPIProvider:
     def normalize(self, outputs: List[str], tool: Dict) -> List[Entity]:

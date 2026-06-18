@@ -37,7 +37,15 @@ def _grep_in_bundle(bundle_file: str, term: str):
         with open(bundle_file, "r", encoding="utf-8", errors="ignore") as f:
             for i, line in enumerate(f, 1):
                 if term.lower() in line.lower():
-                    results.append((i, line.rstrip()))
+                    line_content = line.rstrip()
+                    if len(line_content) > 120:
+                        idx = line_content.lower().find(term.lower())
+                        start = max(0, idx - 40)
+                        end = min(len(line_content), idx + len(term) + 40)
+                        prefix = "..." if start > 0 else ""
+                        suffix = "..." if end < len(line_content) else ""
+                        line_content = prefix + line_content[start:end].strip() + suffix
+                    results.append((i, line_content))
                     if len(results) >= 30:
                         break
     except Exception:
@@ -122,57 +130,135 @@ def cmd_impact(args):
         print("❌ Uso: impact <Classe>")
         sys.exit(1)
 
-    target = args[0].lower()
+    target_input = args[0].lower()
     entities = load_json(ENTITIES_FILE)
-
-    if _is_partial_index(entities):
-        bundle_file = _get_bundle_file(entities)
-        print(f"⚠️  AVISO: Índice parcial. Análise de impacto não disponível sem grafo estrutural.")
-        print(f"   Executando busca textual de referências a '{args[0]}' no bundle como fallback:\n")
-        hits = _grep_in_bundle(bundle_file, args[0])
-        if hits:
-            print(f"💥 Referências textuais a '{args[0]}' (possíveis dependências):")
-            for line_num, line_content in hits:
-                print(f"   Linha {line_num}: {line_content}")
-        else:
-            print(f"✅ Nenhuma referência textual a '{args[0]}' encontrada no bundle.")
-        return
-
     graph = load_json(GRAPH_FILE)
-    if not graph:
-        print("⚠️ graph.json não encontrado. Rode o bootstrap primeiro.")
+
+    if not entities or not graph:
+        print("❌ ERRO\n\nNão existe grafo de dependências.\n\nExecute:\n\nbootstrap\n\npara construir entities.json e graph.json.\n\nImpact Analysis requer relacionamentos.\nBusca textual não produz análise confiável.\n")
         sys.exit(1)
 
     edges = graph.get("edges", [])
-
     if not edges:
-        print("⚠️  AVISO: Grafo de dependências está vazio no índice atual.")
-        print(f"   Executando busca textual de referências a '{args[0]}' nos arquivos originais:\n")
-        # Try to find references in the repomix bundle if it exists, otherwise warn
-        bundle_file = _get_bundle_file(entities)
-        if bundle_file:
-            hits = _grep_in_bundle(bundle_file, args[0])
-            if hits:
-                print(f"💥 Referências textuais a '{args[0]}' (possíveis dependências):")
-                for line_num, line_content in hits:
-                    print(f"   Linha {line_num}: {line_content}")
-            else:
-                print(f"✅ Nenhuma referência textual a '{args[0]}' encontrada no bundle.")
-        else:
-             print("❌ Nenhum bundle disponível para busca textual.")
-        return
+        print("❌ ERRO\n\nNão existe grafo de dependências (arestas vazias).\n\nExecute:\n\nbootstrap\n\npara construir entities.json e graph.json.\n\nImpact Analysis requer relacionamentos.\nBusca textual não produz análise confiável.\n")
+        sys.exit(1)
 
-    affected = set()
+    target_id = None
+    target_ent = None
+    for e in entities:
+        if target_input in e.get("id", "").lower() or target_input in e.get("name", "").lower():
+            target_id = e.get("id")
+            target_ent = e
+            break
+
+    if not target_id:
+        print(f"⚠️ Nenhuma entidade encontrada para '{args[0]}'.")
+        sys.exit(1)
+
+    ent_by_id = {e.get("id"): e for e in entities}
+
+    dependencies = set()
     for edge in edges:
-        if target in edge.get("to_node", "").lower():
-            affected.add(edge.get("from_node"))
+        if edge.get("from_node") == target_id:
+            dependencies.add(edge.get("to_node"))
 
-    if not affected:
-        print(f"✅ Nenhuma dependência direta encontrada que quebre se alterar '{args[0]}'.")
+    direct_dependents = set()
+    for edge in edges:
+        if edge.get("to_node") == target_id:
+            direct_dependents.add(edge.get("from_node"))
+
+    visited = set(direct_dependents)
+    queue = list(direct_dependents)
+    while queue:
+        curr = queue.pop(0)
+        for edge in edges:
+            if edge.get("to_node") == curr:
+                from_n = edge.get("from_node")
+                if from_n not in visited:
+                    visited.add(from_n)
+                    queue.append(from_n)
+    
+    indirect_dependents = visited - direct_dependents
+    all_affected = visited
+    
+    endpoints_afetados = []
+    telas_afetadas = []
+    models_afetados = []
+    arquivos_afetados = set()
+
+    for dep in all_affected:
+        ent = ent_by_id.get(dep)
+        if ent:
+            t = ent.get("type", "").lower()
+            name = ent.get("name", dep)
+            if t == "endpoint": endpoints_afetados.append(name)
+            elif t == "component": telas_afetadas.append(name)
+            elif t in ("model", "interface"): models_afetados.append(name)
+            
+            if ent.get("file"):
+                arquivos_afetados.add(ent.get("file"))
+    
+    if target_ent and target_ent.get("file"):
+        arquivos_afetados.add(target_ent.get("file"))
+
+    num_dependents = len(all_affected)
+    score = "BAIXO"
+    if endpoints_afetados or num_dependents > 10:
+        score = "CRÍTICO"
+    elif num_dependents >= 6:
+        score = "ALTO"
+    elif num_dependents >= 2:
+        score = "MÉDIO"
     else:
-        print(f"💥 O que quebra se alterar '{args[0]}':")
-        for a in affected:
-            print(f"   - {a}")
+        score = "BAIXO"
+
+    print("IMPACT REPORT\n")
+    print(f"Alvo:\n  {target_id}\n")
+    
+    print("Usado por (diretos):")
+    if direct_dependents:
+        for d in direct_dependents:
+            print(f"  - {d}")
+    else:
+        print("  (nenhum)")
+    print("")
+
+    if dependencies:
+        print("Depende de:")
+        for d in dependencies:
+            print(f"  - {d}")
+        print("")
+
+    print(f"Impact Score: {score}\n")
+    
+    print(f"Dependentes Diretos:\n  {len(direct_dependents)}\n")
+    print(f"Dependentes Indiretos:\n  {len(indirect_dependents)}\n")
+    print(f"Endpoints:\n  {len(endpoints_afetados)}\n")
+    print(f"Telas:\n  {len(telas_afetadas)}\n")
+
+    if endpoints_afetados:
+        print("Endpoints afetados:")
+        for ep in endpoints_afetados:
+            print(f"  - {ep}")
+        print("")
+        
+    if telas_afetadas:
+        print("Telas afetadas:")
+        for t in telas_afetadas:
+            print(f"  - {t}")
+        print("")
+        
+    if models_afetados:
+        print("Models afetados:")
+        for m in models_afetados:
+            print(f"  - {m}")
+        print("")
+
+    if arquivos_afetados:
+        print("Arquivos do Raio de Quebra:")
+        for arq in sorted(arquivos_afetados):
+            print(f"  {arq}")
+        print("")
 
 def cmd_feature(args):
     if not args:
