@@ -637,6 +637,8 @@ code-review() {
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
+        --read "$AIDER_GLOBAL_DIR/skills/governance-audit.md"
+        --read "$AIDER_GLOBAL_DIR/skills/angular-patterns.md"
         --read "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
         --read "$AIDER_GLOBAL_DIR/skills/security-audit.md"
     )
@@ -655,7 +657,53 @@ code-review() {
 
     echo "⚖️ Iniciando Tribunal de Código (Code Review) em: $ALVO..."
     agent "$modelo" "${SKILLS[@]}" "${EVIDENCE_ARGS[@]}" \
-        --message "Faça o Code Review dos arquivos/código do alvo '$ALVO' disponibilizados como contexto. Você DEVE analisar o conteúdo concreto fornecido — NÃO emita laudo genérico ou de aprovação sem evidência. Avalie: qualidade, segurança, padrões arquiteturais, acoplamento e manutenibilidade. Emita o laudo final com SCORE (0-100) e cite linhas específicas com problemas ou elogios." "$@"
+        --message "Atue como Auditor de Governança de Código.
+        Alvo analisado: '$ALVO'.
+
+        Você deve emitir um laudo PUNITIVO, baseado somente nas evidências fornecidas.
+
+        Obrigatório avaliar:
+        1. aderência ao project-rules.md
+        2. aderência ao clean-code.md
+        3. aderência ao angular-patterns.md
+        4. complexidade do componente
+        5. separação de responsabilidades
+        6. uso correto de services/models
+        7. padrão de template
+        8. padrão de SCSS
+        9. riscos de manutenção
+        10. bloqueadores
+
+        Formato obrigatório:
+
+        # CODE REVIEW
+
+        ## Veredito
+        APROVADO | APROVADO COM RESSALVAS | REPROVADO
+
+        ## Score
+        0-100
+
+        ## Bloqueadores
+        Liste bloqueadores reais com arquivo e evidência.
+
+        ## Divergências por Arquivo
+        Para cada problema:
+        - Arquivo
+        - Evidência
+        - Problema
+        - Impacto
+        - Correção recomendada
+
+        ## Refatorações Recomendadas
+        Liste ações objetivas, sem generalidades.
+
+        PROIBIDO:
+        - elogios genéricos
+        - score alto sem evidência
+        - dizer 'parece correto'
+        - citar linha sem evidência no bundle
+        - aprovar código complexo sem apontar riscos." "$@"
 }
 
 # Comando para Revisão Operacional (Code Review Funcional)
@@ -869,6 +917,7 @@ standardize() {
     fi
 
     local FLAG="--audit"
+    local REF=""
     while [[ "$#" -gt 0 ]]; do
         case $1 in
             --audit|--plan|--fix) FLAG="$1"; shift ;;
@@ -877,6 +926,13 @@ standardize() {
                     local modelo="$2"; shift 2
                 else
                     echo "❌ ERRO: --model requer um valor."; return 1
+                fi
+                ;;
+            --ref)
+                if [ -n "$2" ] && [[ "$2" != --* ]]; then
+                    REF="$2"; shift 2
+                else
+                    echo "❌ ERRO: --ref requer um caminho."; return 1
                 fi
                 ;;
             *) break ;;
@@ -939,7 +995,39 @@ standardize() {
         fi
     fi
 
-    local MENSAGEM="Atue como Standardizer."
+    if [ -n "$REF" ]; then
+        if [ ! -e "$REF" ]; then
+            echo "❌ ERRO: A referência '$REF' não existe."
+            return 1
+        fi
+        if [ -f "$REF" ]; then
+            CONTEXT_ARGS+=(--read "$REF")
+            echo "📄 Referência individual adicionada: $REF"
+        elif [ -d "$REF" ]; then
+            local REF_BUNDLE=".ai/cache/ref-bundle.txt"
+            echo "📂 Gerando snapshot da referência: $REF_BUNDLE"
+            find "$REF" -type f \( \
+                -name "*.ts" -o -name "*.js" -o -name "*.java" \
+                -o -name "*.py" -o -name "*.cs" -o -name "*.kt" \
+            \) -not -path "*/node_modules/*" -not -path "*/target/*" \
+               -not -path "*/dist/*" -not -path "*/.git/*" \
+            | head -n 60 \
+            | while IFS= read -r srcfile; do
+                echo "\n=== [REFERÊNCIA] $srcfile ==="
+                cat "$srcfile"
+            done > "$REF_BUNDLE" 2>/dev/null
+            
+            if [ -s "$REF_BUNDLE" ]; then
+                CONTEXT_ARGS+=(--read "$REF_BUNDLE")
+            fi
+        fi
+    fi
+
+    local MENSAGEM="Atue como Standardizer. Compare o alvo contra os arquivos de .ai/examples como Golden Path. Preserve regras específicas do alvo. Não remova funcionalidades. Não troque endpoints. Não simplifique comportamento sem evidência."
+    
+    if [ -n "$REF" ]; then
+        MENSAGEM="$MENSAGEM Foi fornecida uma referência em --ref: compare o alvo contra ela como clone funcional."
+    fi
     if [ "$FLAG" == "--audit" ]; then
         MENSAGEM="$MENSAGEM Analise o código do alvo '$ALVO' e liste APENAS as divergências encontradas contra o Golden Path e regras de projeto. NÃO altere o código e não gere planos."
     elif [ "$FLAG" == "--plan" ]; then
