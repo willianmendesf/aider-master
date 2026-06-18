@@ -3,10 +3,12 @@
 # ==========================================
 
 _aider_python() {
+    export PYTHONIOENCODING=utf-8
+    export PYTHONUTF8=1
     if [ -x "$AIDER_GLOBAL_DIR/venv/Scripts/python.exe" ]; then
         "$AIDER_GLOBAL_DIR/venv/Scripts/python.exe" "$@"
-    elif command -v _aider_python >/dev/null 2>&1; then
-        _aider_python "$@"
+    elif command -v python3 >/dev/null 2>&1; then
+        python3 "$@"
     else
         python "$@"
     fi
