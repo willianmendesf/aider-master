@@ -1029,7 +1029,31 @@ standardize() {
         MENSAGEM="$MENSAGEM Foi fornecida uma referência em --ref: compare o alvo contra ela como clone funcional."
     fi
     if [ "$FLAG" == "--audit" ]; then
-        MENSAGEM="$MENSAGEM Analise o código do alvo '$ALVO' e liste APENAS as divergências encontradas contra o Golden Path e regras de projeto. NÃO altere o código e não gere planos."
+        MENSAGEM="$MENSAGEM Analise o código do alvo '$ALVO'. Você recebeu: 1. alvo em standardize-bundle.txt, 2. referência funcional em ref-bundle.txt, 3. Golden Path em .ai/examples. Obrigatório comparar os três.
+PROIBIDO usar:
+- pode haver
+- verificar se
+- há indícios
+- deve ser comprovado
+- caso haja
+- confirmar que
+
+Se não houver evidência concreta no bundle, escreva:
+EVIDÊNCIA NÃO ENCONTRADA.
+
+Para cada divergência, use o formato:
+## DIVERGÊNCIA-001
+- Tipo: alvo vs Golden Path | alvo vs referência | regra do projeto
+- Arquivo alvo:
+- Evidência no alvo:
+- Evidência na referência:
+- Evidência no Golden Path:
+- Problema:
+- Impacto:
+- Ação recomendada:
+- Preservar comportamento específico do alvo: sim/não
+
+NÃO altere o código e não gere planos."
     elif [ "$FLAG" == "--plan" ]; then
         MENSAGEM="$MENSAGEM Analise o código do alvo '$ALVO', encontre as divergências e CRIE um PLAN-XXX.md na pasta .ai/plans/ com as tarefas rastreáveis TASK-XXX. Não altere o código fonte."
     elif [ "$FLAG" == "--fix" ]; then

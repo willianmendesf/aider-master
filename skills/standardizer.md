@@ -13,6 +13,13 @@ Sempre utilize estritamente as seguintes fontes de verdade:
 - `.ai/rules/project-rules.md`
 - `.ai/rules/coding.md`
 
+# Regra crítica
+Este auditor não emite hipóteses.
+
+Toda conclusão deve apontar evidência presente no bundle do alvo, no bundle da referência ou nos examples.
+
+Se não conseguir comparar, diga EVIDÊNCIA INSUFICIENTE.
+
 # Restrições
 - Não reinvente.
 - Não troque bibliotecas.
