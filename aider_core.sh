@@ -527,8 +527,18 @@ feature() {
 
     if [ "$OPEN_AIDER" -eq 1 ]; then
         if [ -s ".ai/cache/feature_files.txt" ]; then
-            echo "🚀 Abrindo Aider com contexto focado..."
-            agent "$modelo" "${BASE_SKILLS[@]}" $(cat .ai/cache/feature_files.txt)
+            echo "🚀 Abrindo Aider com contexto focado e disparando onboarding automático..."
+            local ONBOARDING_MSG="Analise a feature carregada. Explique:
+1. Objetivo da feature
+2. Fluxo principal
+3. APIs consumidas
+4. Models utilizados
+5. Arquivos mais importantes
+6. Pontos de extensão
+7. Riscos de alteração
+
+Não escreva código."
+            agent "$modelo" "${BASE_SKILLS[@]}" $(cat .ai/cache/feature_files.txt) --message "$ONBOARDING_MSG"
         else
             echo "⚠️ Nenhum arquivo encontrado para abrir no Aider."
         fi

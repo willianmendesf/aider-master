@@ -538,8 +538,10 @@ def cmd_feature(args):
             if d not in feature_ids:
                 if dt in ("component", "directive"):
                     reused_components[d] = d_ent
+                    if d_ent.get("file"): arquivos.add(d_ent.get("file"))
                 elif dt == "service":
                     external_services[d] = d_ent
+                    if d_ent.get("file"): arquivos.add(d_ent.get("file"))
                 elif dt in ("model", "interface", "class"):
                     models.append(d_ent)
                     feature_ids.add(d)
@@ -614,20 +616,6 @@ def cmd_feature(args):
                 print(f"       └── {u}")
         print("")
     
-    print("GUIA DE DESENVOLVIMENTO (POR ONDE COMEÇAR)")
-    print("Se for implementar uma nova funcionalidade, siga a ordem:")
-    passo = 1
-    if telas:
-        print(f"  {passo}. {telas[0].get('name')} (Injete dependências e mude a UI)")
-        passo += 1
-    if all_services:
-        print(f"  {passo}. {all_services[0].get('name')} (Adicione a lógica de negócio ou integração HTTP)")
-        passo += 1
-    if models:
-        print(f"  {passo}. {models[0].get('name')} (Atualize a tipagem ou contrato do DTO)")
-        passo += 1
-    print("")
-
     print("ARQUIVOS RELEVANTES (Caminho Completo)")
     for i, f in enumerate(sorted(arquivos), 1):
         print(f"{f}")

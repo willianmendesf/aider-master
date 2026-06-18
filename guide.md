@@ -83,22 +83,48 @@ A dor clássica: "Se eu alterar a assinatura do `gerarBoleto()`, quais telas vã
 
 ---
 
-### Cenário 5: Desenvolvendo uma Nova Feature Baseada no Legado
-Você precisa criar uma "Nova Proposta Previdência". Em vez de colocar todos os 500 arquivos do módulo no prompt e deixar a IA confusa, você atua como um cirurgião.
+### Cenário 5: Desenvolvendo uma Feature Baseada no Legado
+Você precisa trabalhar na feature "appointment". Em vez de adicionar arquivos manualmente, o Aider OS faz isso para você.
 
-1. **Monte o Contexto Cirurgicamente**:
+1. **Ver o contexto cirúrgico (sem IA)**:
    ```bash
-   feature previdencia
+   feature appointment
    ```
-   O sistema varre os JSONs, cruza os serviços da tela de previdencia usando o Grafo de Dependências, e isola apenas os 5 ou 6 arquivos relevantes. 
+   Mostra o ponto de entrada, fluxo semântico, arquivos relevantes e guia de desenvolvimento.
 
-2. **Planeje a Mudança como um Tech Lead**:
+2. **Gerar um relatório explicativo via IA**:
+   ```bash
+   feature appointment --ai
+   ```
+   Ou use `--report` (alias para `--ai`).
+
+3. **Abrir diretamente no Aider com todos os arquivos carregados**:
+   ```bash
+   feature appointment --open
+   ```
+   Isso abre o Aider com **todos os arquivos relevantes já no contexto**, ex:
+   - `appointments.component.ts`
+   - `appointment.model.ts`
+   - `appointment-execution-log.model.ts`
+   - `appointment-schedule.interface.ts`
+   - `modal.component.ts`
+   - `datatable.component.ts`
+   - E as regras (`project-rules.md`, `clean-code.md`).
+
+   Agora você pode simplesmente conversar diretamente com a IA sobre a feature!
+   Exemplos de perguntas:
+   - Explique como funciona essa feature.
+   - Me mostre o fluxo completo dessa tela.
+   - Onde eu preciso mexer para adicionar um novo campo "priority" no appointment?
+   - Quero adicionar um botão para duplicar um appointment existente. Primeiro analise a arquitetura atual e me diga quais arquivos serão alterados. Não escreva código ainda.
+
+4. **Planeje a Mudança como um Tech Lead (se precisar de plano formal)**:
    ```bash
    plan "Adicionar regra de desconto na Nova Proposta Previdência"
    ```
    A IA fatiará a feature em pequenas tarefas de código num arquivo `PLAN-001.md`.
 
-3. **Programe as Tarefas (O Método Guiado)**:
+5. **Programe as Tarefas (O Método Guiado)**:
    ```bash
    dev .ai/plans/PLAN-001.md
    ```
