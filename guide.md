@@ -49,28 +49,34 @@ Você indexou o mapa de arquivos no Passo 1, mas agora a IA precisa saber *como*
 ### Cenário 3: Onde fica essa classe? (Investigação Rápida)
 O projeto está configurado. O chefe mandou arrumar a classe "FinanceiroService", mas você não sabe onde ela está num projeto de 5000 arquivos. 
 
-1. **Localização Exata**:
+1. **Localização Exata ("Onde está essa classe?")**:
    ```bash
    where FinanceiroService
    ```
-   Resposta em milissegundos apontando o arquivo exato e a linha. Custo zero de tokens.
+   Resposta em milissegundos apontando o arquivo exato e a linha. Se houver múltiplos nomes parecidos, ele exibe uma lista limpa numerada.
 
-2. **Descobrindo Detalhes (Grau de Confiança)**:
+2. **Raio-X do Componente ("O que é isso?")**:
    ```bash
    discover Proposta
    ```
-   Informa o arquivo, o tipo (model, component, endpoint) e como ele foi encontrado.
+   Informa o arquivo, a Feature a que pertence, e um relatório de **Saúde Arquitetural** para alertar se a classe está muito acoplada, tudo baseado puramente nos metadados do Grafo.
+
+3. **Mapa Mental Visual**:
+   ```bash
+   discover Proposta --tree
+   ```
+   Desenha uma árvore ASCII instantânea no terminal para você visualizar a dependência do componente visualmente.
 
 ---
 
 ### Cenário 4: O que vou quebrar se eu mudar isso? (Análise de Impacto)
 A dor clássica: "Se eu alterar a assinatura do `gerarBoleto()`, quais telas vão parar de funcionar?".
 
-1. **Navegue pelas arestas do Grafo Instantaneamente**:
+1. **Descubra o Raio de Quebra**:
    ```bash
    impact FinanceiroService
    ```
-   Lê o `graph.json` em ordem reversa (`used_by`) e lista todos os Componentes, Módulos e Controllers que dependem da classe. Você descobre o raio de quebra instantaneamente sem acionar a IA.
+   Navega pelo `graph.json` em ordem reversa (`used_by`) e avisa exatamente quais Telas, Endpoints e Serviços ficarão comprometidos pela alteração. Ele gera um Impact Score (ex: CRÍTICO) devidamente justificado (ex: "Afeta 8 Endpoints indiretamente").
 
 ---
 

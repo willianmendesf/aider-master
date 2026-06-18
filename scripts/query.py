@@ -127,12 +127,20 @@ def cmd_discover(args):
                 print(f"   Linha {line_num}: {line_content}")
         return
 
+    is_tree = "--tree" in args
+    if is_tree:
+        # Remove a flag para não quebrar o filtro de nome
+        args.remove("--tree")
+        if not args:
+            print("❌ Uso: discover <Termo> [--tree]")
+            sys.exit(1)
+    
+    term = args[0].lower()
     matches = [e for e in entities if term in e.get("id", "").lower() or term in e.get("name", "").lower()]
     if not matches:
         print(f"⚠️ Nenhuma entidade encontrada para '{term}'.")
         return
 
-    # find exact if possible
     exact_matches = [e for e in matches if term == e.get("name", "").lower()]
     e = exact_matches[0] if exact_matches else matches[0]
 
@@ -151,6 +159,7 @@ def cmd_discover(args):
     dep_services = []
     dep_components = []
     dep_models = []
+    dep_utils = []
     
     for d in dependencies:
         d_ent = ent_by_id.get(d)
@@ -160,31 +169,64 @@ def cmd_discover(args):
         if t == "service": dep_services.append(name)
         elif t in ("component", "directive"): dep_components.append(name)
         elif t in ("model", "interface", "class"): dep_models.append(name)
+        else: dep_utils.append(name)
         
     num_deps = len(dependencies)
     num_cons = len(consumers)
     num_models = len(dep_models)
     
-    complexidade = "BAIXA"
-    if num_deps > 10 or num_cons > 10:
-        complexidade = "ALTA"
-    elif num_deps >= 5 or num_cons >= 3:
-        complexidade = "MÉDIA"
-        
-    feature_name = e.get("feature", ["(Nenhuma mapeada)"])
-    feature_str = feature_name[0] if feature_name else "(Nenhuma mapeada)"
-    
+    # Avaliação de Saúde Arquitetural
+    risco = "BAIXO"
+    if num_deps <= 5:
+        saude = "BAIXO ACOPLAMENTO"
+        saude_msg = "Componente atua com responsabilidade única e coesa."
+    elif num_deps <= 10:
+        saude = "MÉDIO ACOPLAMENTO"
+        saude_msg = "Acoplamento dentro da média esperada."
+        risco = "MÉDIO"
+    elif num_deps <= 15:
+        saude = "ALTO ACOPLAMENTO"
+        saude_msg = "O componente concentra múltiplas responsabilidades (UI, integração, regras)."
+        risco = "ALTO"
+    else:
+        saude = "ACOPLAMENTO CRÍTICO"
+        saude_msg = "O componente concentra responsabilidades de UI, integração, regras de negócio e manipulação de dados em um único ponto."
+        risco = "CRÍTICO"
+
+    # Inferência de Feature via Caminho
+    file_path = e.get('file', '')
+    parts = file_path.replace("\\", "/").split("/")
+    feature_str = "(Nenhuma mapeada)"
+    if len(parts) > 1:
+        parent_dir = parts[-2]
+        if parent_dir in ("model", "models", "components", "services", "utils", "shared", "core", "interfaces", "pages", "logged"):
+            if len(parts) > 2:
+                parent_dir = parts[-3]
+                if parent_dir in ("pages", "logged"):
+                    if len(parts) > 3: parent_dir = parts[-4]
+        feature_str = parent_dir.capitalize()
+
+    if is_tree:
+        print(f"{feature_str}")
+        print(f"└── {e.get('name')}")
+        all_deps = sorted(dep_services + dep_components + dep_models + dep_utils)
+        for i, d in enumerate(all_deps):
+            is_last = (i == len(all_deps) - 1)
+            prefix = "    └── " if is_last else "    ├── "
+            print(f"{prefix}{d}")
+        return
+
     print("=======================================")
     print(" 🔎 DISCOVERY REPORT")
     print("=======================================\n")
     print(f"Nome:\n  {e.get('name')}\n")
+    print(f"Feature Inferida:\n  {feature_str}\n")
     print(f"Tipo:\n  {e.get('type').capitalize()}\n")
     print(f"Arquivo:\n  {e.get('file')}\n")
     print(f"Origem:\n  {e.get('source')} ({e.get('confidence')}%)\n")
-    print(f"Pertence à Feature:\n  {feature_str}\n")
     
     if dep_services or dep_components:
-        print("Utiliza:")
+        print("Utiliza (Usa):")
         for d in sorted(dep_services + dep_components):
             print(f"  - {d}")
         print("")
@@ -195,14 +237,19 @@ def cmd_discover(args):
             print(f"  - {m}")
         print("")
         
-    print("Resumo:\n")
-    print(f"  O elemento {e.get('name')} atua como {e.get('type').capitalize()}.\n  Possui {num_deps} dependências diretas para execução.\n")
+    print("Saúde Arquitetural:\n")
+    print(f"  Dependências Totais:\n    {num_deps}\n")
+    print(f"  Services:\n    {len(dep_services)}")
+    print(f"  Components:\n    {len(dep_components)}")
+    print(f"  Models:\n    {len(dep_models)}")
+    print(f"  Utils:\n    {len(dep_utils)}\n")
+    print(f"  Avaliação:\n    {saude}\n")
+    print(f"  Motivo:\n    {saude_msg}\n")
+    print(f"  Risco:\n    {risco}\n")
 
-    print("Relacionamentos:")
-    print(f"  {num_deps} dependências diretas")
+    print("Relacionamentos Gerais:")
     print(f"  {num_models} models associados")
     print(f"  {num_cons} consumidores detectados\n")
-    print(f"Complexidade:\n  {complexidade}\n")
 
 def cmd_impact(args):
     if not args:
