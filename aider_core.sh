@@ -945,45 +945,48 @@ standardize() {
         --read "$AIDER_GLOBAL_DIR/skills/standardizer.md"
     )
 
-    # Injeta exemplos do Golden Path para referência (usa --read, nunca --file)
     if [ -d ".ai/examples" ]; then
         while IFS= read -r f; do
             SKILLS+=(--read "$f")
         done < <(find .ai/examples -type f \( -name "*.md" -o -name "*.ts" -o -name "*.js" \))
     fi
 
-    # --- Monta os argumentos de contexto de acordo com o tipo do alvo ---
-    local CONTEXT_ARGS=()
-    if [ -f "$ALVO" ]; then
-        # Arquivo único: pode ser editado diretamente com --fix
-        if [ "$FLAG" == "--fix" ]; then
-            CONTEXT_ARGS=(--file "$ALVO")
-        else
-            CONTEXT_ARGS=(--read "$ALVO")
-        fi
-    elif [ -d "$ALVO" ]; then
-        # Diretório: nunca usa --file diretamente num dir. Gera bundle para leitura.
-        _init_ai_workspace
-        local BUNDLE_FILE=".ai/cache/standardize-bundle.txt"
-        echo "📂 Diretório detectado. Gerando snapshot do código: $BUNDLE_FILE"
-        find "$ALVO" -type f \( \
-            -name "*.ts" -o -name "*.js" -o -name "*.java" \
-            -o -name "*.py" -o -name "*.cs" -o -name "*.kt" \
-        \) -not -path "*/node_modules/*" -not -path "*/target/*" \
-           -not -path "*/dist/*" -not -path "*/.git/*" \
-        | head -n 60 \
-        | while IFS= read -r srcfile; do
-            echo "\n=== $srcfile ==="
-            cat "$srcfile"
-        done > "$BUNDLE_FILE" 2>/dev/null
+    # 1. Executa auditoria determinística
+    echo "🔎 Extraindo fatos objetivos via standardize_audit.py..."
+    _init_ai_workspace
+    
+    local CMD_AUDIT=("$AIDER_GLOBAL_DIR/scripts/standardize_audit.py" --target "$ALVO" --out-json ".ai/cache/standardize-report.json" --out-md ".ai/cache/standardize-report.md")
+    if [ -n "$REF" ]; then
+        CMD_AUDIT+=(--ref "$REF")
+    fi
+    if [ -d ".ai/examples" ]; then
+        CMD_AUDIT+=(--examples ".ai/examples")
+    fi
 
-        if [ ! -s "$BUNDLE_FILE" ]; then
-            echo "❌ ERRO: Nenhum arquivo de código encontrado em '$ALVO'."
-            return 1
-        fi
-        echo "✅ Bundle gerado ($(wc -l < "$BUNDLE_FILE") linhas)."
-        CONTEXT_ARGS=(--read "$BUNDLE_FILE")
-        if [ "$FLAG" == "--fix" ]; then
+    if ! _aider_python "${CMD_AUDIT[@]}"; then
+        echo "❌ Falha ao rodar auditoria determinística."
+        return 1
+    fi
+
+    # 2. Fluxo por Flag
+    if [ "$FLAG" == "--audit" ]; then
+        echo "✅ Auditoria concluída. Relatório factual:"
+        cat .ai/cache/standardize-report.md
+        return 0
+    fi
+
+    # --- Se for --plan ou --fix, injetamos o laudo na IA ---
+    local CONTEXT_ARGS=(--read ".ai/cache/standardize-report.md")
+
+    if [ "$FLAG" == "--plan" ]; then
+        local MENSAGEM="Atue como Standardizer. Você recebeu um relatório factual gerado por script determinístico (em standardize-report.md). Não invente evidências. Não audite novamente. Não questione fatos do relatório. Sua tarefa: Criar um PLAN-XXX.md na pasta .ai/plans/ com tarefas seguras para padronizar o alvo. Priorize: organização da classe, redução de complexidade, separação de responsabilidades, legibilidade, aderência ao Golden Path. Preserve: endpoints, clients, payloads, models, regras de negócio, comportamento específico do alvo. Não altere o código fonte."
+        echo "📏 Planejando Padronização em $ALVO..."
+        agent "$modelo" "${SKILLS[@]}" "${CONTEXT_ARGS[@]}" --message "$MENSAGEM" "$@"
+    elif [ "$FLAG" == "--fix" ]; then
+        local MENSAGEM="Atue como Standardizer. Você recebeu um relatório factual gerado por script determinístico (em standardize-report.md). Sua tarefa: Analisar e EXECUTAR as adequações no código do alvo para convergir estritamente aos padrões documentados no laudo."
+        if [ -f "$ALVO" ]; then
+            CONTEXT_ARGS+=(--file "$ALVO")
+        elif [ -d "$ALVO" ]; then
             echo "⚠️  AVISO: --fix em diretório adiciona os arquivos como editáveis ao Aider."
             while IFS= read -r srcfile; do
                 CONTEXT_ARGS+=(--file "$srcfile")
@@ -993,74 +996,9 @@ standardize() {
             \) -not -path "*/node_modules/*" -not -path "*/target/*" \
                -not -path "*/dist/*" -not -path "*/.git/*" | head -n 30)
         fi
+        echo "📏 Aplicando Padronização em $ALVO..."
+        agent "$modelo" "${SKILLS[@]}" "${CONTEXT_ARGS[@]}" --message "$MENSAGEM" "$@"
     fi
-
-    if [ -n "$REF" ]; then
-        if [ ! -e "$REF" ]; then
-            echo "❌ ERRO: A referência '$REF' não existe."
-            return 1
-        fi
-        if [ -f "$REF" ]; then
-            CONTEXT_ARGS+=(--read "$REF")
-            echo "📄 Referência individual adicionada: $REF"
-        elif [ -d "$REF" ]; then
-            local REF_BUNDLE=".ai/cache/ref-bundle.txt"
-            echo "📂 Gerando snapshot da referência: $REF_BUNDLE"
-            find "$REF" -type f \( \
-                -name "*.ts" -o -name "*.js" -o -name "*.java" \
-                -o -name "*.py" -o -name "*.cs" -o -name "*.kt" \
-            \) -not -path "*/node_modules/*" -not -path "*/target/*" \
-               -not -path "*/dist/*" -not -path "*/.git/*" \
-            | head -n 60 \
-            | while IFS= read -r srcfile; do
-                echo "\n=== [REFERÊNCIA] $srcfile ==="
-                cat "$srcfile"
-            done > "$REF_BUNDLE" 2>/dev/null
-            
-            if [ -s "$REF_BUNDLE" ]; then
-                CONTEXT_ARGS+=(--read "$REF_BUNDLE")
-            fi
-        fi
-    fi
-
-    local MENSAGEM="Atue como Standardizer. Compare o alvo contra os arquivos de .ai/examples como Golden Path. Preserve regras específicas do alvo. Não remova funcionalidades. Não troque endpoints. Não simplifique comportamento sem evidência."
-    
-    if [ -n "$REF" ]; then
-        MENSAGEM="$MENSAGEM Foi fornecida uma referência em --ref: compare o alvo contra ela como clone funcional."
-    fi
-    if [ "$FLAG" == "--audit" ]; then
-        MENSAGEM="$MENSAGEM Analise o código do alvo '$ALVO'. Você recebeu: 1. alvo em standardize-bundle.txt, 2. referência funcional em ref-bundle.txt, 3. Golden Path em .ai/examples. Obrigatório comparar os três.
-PROIBIDO usar:
-- pode haver
-- verificar se
-- há indícios
-- deve ser comprovado
-- caso haja
-- confirmar que
-
-Se não houver evidência concreta no bundle, escreva:
-EVIDÊNCIA NÃO ENCONTRADA.
-
-Para cada diferença encontrada, use o formato OBRIGATÓRIO:
-## ITEM-001
-- Classificação: PADRONIZAR | PRESERVAR | INVESTIGAR
-- Tipo: alvo vs Golden Path | alvo vs referência | regra do projeto
-- Arquivo alvo:
-- Evidência no alvo:
-- Evidência na referência:
-- Evidência no Golden Path:
-- Decisão:
-- Ação:
-
-NÃO altere o código e não gere planos."
-    elif [ "$FLAG" == "--plan" ]; then
-        MENSAGEM="$MENSAGEM Analise o código do alvo '$ALVO', encontre as divergências e CRIE um PLAN-XXX.md na pasta .ai/plans/ com as tarefas rastreáveis TASK-XXX. Não altere o código fonte."
-    elif [ "$FLAG" == "--fix" ]; then
-        MENSAGEM="$MENSAGEM Analise e EXECUTE as adequações no código do alvo '$ALVO' para convergir estritamente aos padrões do Golden Path."
-    fi
-
-    echo "📏 Iniciando Padronização em $ALVO (Modo: $FLAG)..."
-    agent "$modelo" "${SKILLS[@]}" "${CONTEXT_ARGS[@]}" --message "$MENSAGEM" "$@"
 }
 
 # brain-index foi removido. A integração MCP agora lê diretamente de .ai/knowledge.

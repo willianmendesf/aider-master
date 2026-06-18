@@ -1,0 +1,10 @@
+# Regras de estruturação Java
+rules:
+  class:
+    max_lines: 400
+    max_methods: 20
+    max_method_lines: 40
+  general:
+    forbidden:
+      - System.out.println
+      - try/catch vazio
