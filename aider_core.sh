@@ -271,7 +271,7 @@ plan() {
     touch "$PLANO_ARQUIVO"
 
     local PLAN_PROMPT
-    PLAN_PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/skills/prompts/plan.md")"
+    PLAN_PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/prompts/plan.md")"
     PLAN_PROMPT="${PLAN_PROMPT//\{\{DEMANDA\}\}/$DEMANDA}"
     PLAN_PROMPT="${PLAN_PROMPT//\{\{PLANO_ARQUIVO\}\}/$PLANO_ARQUIVO}"
     PLAN_PROMPT="${PLAN_PROMPT//\{\{NOME_PLANO\}\}/$NOME_PLANO}"
@@ -450,7 +450,7 @@ dev() {
     fi
 
     local PROMPT
-    PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/skills/prompts/dev.md")"
+    PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/prompts/dev.md")"
 
     agent "$modelo" "${SKILLS[@]}" --file "$PLANO" --message "$PROMPT" "$@"
 }
@@ -575,7 +575,7 @@ code-review() {
 
     echo "⚖️ Iniciando Tribunal de Código (Code Review) em: $ALVO..."
     local PROMPT
-    PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/skills/prompts/code-review.md")"
+    PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/prompts/code-review.md")"
     PROMPT="${PROMPT//\{\{ALVO\}\}/$ALVO}"
 
     agent "$modelo" "${SKILLS[@]}" "${EVIDENCE_ARGS[@]}" \
