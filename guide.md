@@ -2,7 +2,7 @@
 
 Este documento é a sua **Referência Diária** para operar o Aider OS. 
 
-O grande diferencial desta versão é que você **não precisa mais ser o "RAG humano" da IA**. Se antes você perdia tempo caçando em quais pastas estavam as Models, Services e Interfaces para contextualizar a inteligência artificial, agora você usa o Grafo local.
+O grande diferencial desta versão é que você **não precisa mais ser o "RAG humano" da IA**. Se antes você perdia tempo caçando em quais pastas estavam as Models, Services e Interfaces para contextualizar a inteligência artificial, agora você usa o Grafo local, o repo-map nativo do Aider e o MCP (Model Context Protocol).
 
 ---
 
@@ -27,7 +27,13 @@ Você acabou de clonar o repositório ou o time decidiu instaurar o Aider OS no 
    ```
    O Aider OS não chamará o LLM. Ele rodará as ferramentas detectadas, normalizará a saída e criará um poderoso banco relacional local em `.ai/knowledge/entities.json` e `.ai/knowledge/graph.json`. O projeto agora está indexado.
 
-3. **(Opcional) Inicialize com Templates**:
+3. **(Opcional) Indexe o projeto no RAG**:
+   ```bash
+   brain-index /caminho/para/projeto nome-do-projeto
+   ```
+   Isso permite usar as ferramentas MCP `search_project_memory` e `get_project_map` para consultas rápidas.
+
+4. **(Opcional) Inicialize com Templates**:
    Se o projeto ainda não tem a estrutura `.ai/`, copie os templates da pasta `templates/aider-os/` para a raiz do seu projeto.
 
 ---
@@ -67,7 +73,7 @@ Você precisa criar uma "Nova Proposta Previdência". Em vez de colocar todos os
    ```bash
    feature previdencia
    ```
-   O sistema varre os JSONs, cruza os serviços da tela de previdência usando o Grafo de Dependências, e isola apenas os 5 ou 6 arquivos relevantes. O Aider usará ESSE minúsculo e focado relatório para entender a feature.
+   O sistema varre os JSONs, cruza os serviços da tela de previdencia usando o Grafo de Dependências, e isola apenas os 5 ou 6 arquivos relevantes. O Aider usará ESSE minúsculo e focado relatório para entender a feature.
 
 2. **Planeje a Mudança e Programe**:
    ```bash
@@ -128,7 +134,7 @@ Você quer consultar rapidamente um projeto indexado anteriormente.
    brain-index /caminho/para/projeto meu-projeto
    ```
 
-2. **Buscar no RAG**:
+2. **Buscar no RAG (via CLI)**:
    ```bash
    python /dados/aider/rag/rag_cli.py search "AppointmentService" meu-projeto
    ```
@@ -151,13 +157,23 @@ Você entrou em um projeto novo e quer entender as regras de código e arquitetu
 
 ---
 
+## 🗺️ Usando o Repo-Map Nativo
+
+Para ver o repo-map gerado automaticamente pelo Aider:
+1. **Na sessão do Aider**: use `/map` ou `/map-refresh`
+2. **No terminal**: execute `aider --show-repo-map`
+
+O repo-map é mantido automaticamente e não requer manutenção manual.
+
+---
+
 ## 🛡️ O Fim do "Senta e Reza"
 
-A grande mensagem do Aider OS v2.0 é: **Ferramentas consagradas (LSP, AST, OpenAPI) extraem os metadados muito melhor que LLMs lendo texto corrido.**
+A grande mensagem do Aider OS v2.0 é: **Ferramentas consagradas (LSP, AST, OpenAPI, repo-map nativo) extraem os metadados muito melhor que LLMs lendo texto corrido.**
 
 Ao adotar o fluxo `bootstrap` → `where` → `impact` → `feature` → `dev`, você deixa de terceirizar a arquitetura mental do sistema para uma IA cara e lenta. O seu repositório ganha uma Memória Operacional local rápida, e a IA faz apenas aquilo que faz de melhor: programar dentro de um contexto pequeno, controlado e livre de alucinações.
 
 ---
 
 ## 📚 Comandos de Referência Rápida
-Para uma lista completa de todos os comandos, skills e integrações, consulte o arquivo [README.md](./README.md).
+Para uma lista completa de todos os comandos, skills, integrações e MCP, consulte o arquivo [README.md](./README.md).

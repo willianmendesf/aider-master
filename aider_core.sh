@@ -79,7 +79,6 @@ agent() {
                   --no-browser \
                   --no-auto-commits \
                   --no-dirty-commits \
-                  --map-tokens 0 \
                   --input-history-file ".aider/.aider.input.history" \
                   --chat-history-file ".aider/.aider.chat.history.md" \
                   --llm-history-file ".aider/.aider.llm.history" \
@@ -114,13 +113,7 @@ architect() {
         --read "$AIDER_GLOBAL_DIR/skills/architect.md"
     )
 
-    if [ -s ".ai/context/project-map.md" ]; then
-        SKILLS+=(--read ".ai/context/project-map.md")
-    else
-        echo "⚠️ AVISO: O mapa do projeto (.ai/context/project-map.md) não existe ou está vazio."
-        echo "💡 Recomendação: Rode 'sync-full' para gerar o contexto e ajudar a IA a tomar decisões melhores."
-    fi
-
+    # O repo-map nativo do Aider agora fornece o contexto de repositório automaticamente.
     echo "🏛️ Atuando como Arquiteto para gerar um ADR..."
     agent "$modelo" "${SKILLS[@]}" --message "Atue como Arquiteto. Demanda: $DEMANDA. Avalie as alternativas, decida os trade-offs e CRIE um arquivo sequencial na pasta .ai/decisions/. Não gere ou modifique NENHUM código fonte." "$@"
 }
@@ -146,9 +139,7 @@ design() {
         --read "$AIDER_GLOBAL_DIR/skills/system-design.md"
     )
 
-    if [ -s ".ai/context/project-map.md" ]; then
-        SKILLS+=(--read ".ai/context/project-map.md")
-    fi
+    # O repo-map nativo fornece o contexto automaticamente.
 
     echo "🏗️ Atuando como System Design (Decisão Tática local)..."
     agent "$modelo" "${SKILLS[@]}" --message "Demanda Tática: $DEMANDA. Use a skill System Design para apresentar uma proposta estrutural sem gerar código e sem gerar ADR." "$@"
@@ -177,12 +168,7 @@ plan() {
         --read "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
     )
 
-    if [ -s ".ai/context/project-map.md" ]; then
-        SKILLS+=(--read ".ai/context/project-map.md")
-    else
-        echo "⚠️ AVISO: O mapa do projeto (.ai/context/project-map.md) não existe ou está vazio."
-        echo "💡 Recomendação: Rode 'sync-full' para gerar o contexto base para o planejamento tático."
-    fi
+    # O repo-map nativo fornece o contexto automaticamente.
 
     echo "🗺️ Atuando como Tech Lead para fatiar o Plano de Ação..."
     echo "📝 Demanda: $DEMANDA"
@@ -279,11 +265,7 @@ debug() {
         --read "$AIDER_GLOBAL_DIR/skills/bug-hunter.md"
     )
 
-    if [ -s ".ai/context/project-map.md" ]; then
-        SKILLS+=(--read ".ai/context/project-map.md")
-    else
-        echo "⚠️ AVISO: O mapa do projeto não existe. Isso pode reduzir a precisão do diagnóstico."
-    fi
+    # O repo-map nativo fornece o contexto automaticamente.
 
     echo "🐛 Iniciando Investigação de Causa Raiz (Debug)..."
     agent "$modelo" "${SKILLS[@]}" --message "Atue como Investigador Sênior (Root Cause Analysis). Analise o erro ou problema relatado pelo usuário. Localize a raiz do problema cruzando com o contexto do projeto. NÃO sugira gambiarras, emita o relatório técnico e aponte o arquivo exato a ser corrigido." "$@"
@@ -358,9 +340,7 @@ code-review() {
         --read "$AIDER_GLOBAL_DIR/skills/security-audit.md"
     )
 
-    if [ -s ".ai/context/project-map.md" ]; then
-        SKILLS+=(--read ".ai/context/project-map.md")
-    fi
+    # O repo-map nativo fornece o contexto de forma automática.
     if [ -s ".ai/decisions/ARCHITECTURE-BASELINE.md" ]; then
         SKILLS+=(--read ".ai/decisions/ARCHITECTURE-BASELINE.md")
     fi
@@ -703,44 +683,13 @@ bootstrap() {
     echo "📊 Etapa 1/2: Extração estrutural de entidades..."
     python3 "$AIDER_GLOBAL_DIR/scripts/knowledge_pipeline.py"
 
-    # --- ETAPA 2: Mapeamento LLM (bundle → project-map.md + ARCHITECTURE-BASELINE.md) ---
-    echo ""
-    echo "🧠 Etapa 2/2: Mapeamento de contexto com IA (gera project-map.md)..."
-
-    bundle ".ai/.aider-bootstrap-full.txt" > /dev/null 2>&1
-    head -n 25000 ".ai/.aider-bootstrap-full.txt" > ".ai/.aider-bootstrap.txt"
-
-    local SKILLS=(
-        "${BASE_SKILLS[@]}"
-        --read "$AIDER_GLOBAL_DIR/skills/context-builder.md"
-        --read "$AIDER_GLOBAL_DIR/skills/governance-audit.md"
-    )
-
-    echo "🔍 Mapeando projeto e gerando Backlog Técnico..."
-    agent "$modelo" "${SKILLS[@]}" --read ".ai/.aider-bootstrap.txt" \
-    --yes \
-    --message "Atue simultaneamente como Context Builder e Auditor. Analise o contexto e execute as 4 etapas:
-1. Atualize .ai/context/project-map.md e .ai/context/domain-map.md com o mapa completo do projeto (componentes, serviços, módulos, padrões encontrados).
-2. Crie .ai/decisions/ARCHITECTURE-BASELINE.md com o Laudo Base e Score de maturidade.
-3. Crie .ai/plans/TECHNICAL-DEBT-BACKLOG.md listando dívidas técnicas em formato [ ] TASK-XXX.
-4. Crie .ai/examples/candidates.md sugerindo classes/arquivos bem avaliados como Golden Path.
-NÃO faça perguntas. NÃO modifique código fonte." \
-    .ai/context/project-map.md .ai/context/domain-map.md \
-    .ai/decisions/ARCHITECTURE-BASELINE.md \
-    .ai/plans/TECHNICAL-DEBT-BACKLOG.md \
-    .ai/examples/candidates.md "$@"
-
-    _cleanup_ai_temps
-    echo ""
-    echo "✅ Bootstrap Concluído! Cérebro inicializado."
-    echo "   📍 Mapa do projeto: .ai/context/project-map.md"
-    echo "   📍 Laudo de arquitetura: .ai/decisions/ARCHITECTURE-BASELINE.md"
-    echo "   📍 Backlog técnico: .ai/plans/TECHNICAL-DEBT-BACKLOG.md"
+    echo "✅ Bootstrap Concluído! O banco de conhecimento local está pronto para comandos como where, impact e feature."
 }
 
 # Comando para atualizar o mapa de TODO o projeto
 # Uso: sync-full [--model <modelo>]
 sync-full() {
+    echo "⚠️ AVISO: Comando legado; o repo-map nativo do Aider agora substitui este fluxo."
     local modelo="default"
     if [ "$1" == "--model" ] && [ -n "$2" ]; then
         modelo="$2"; shift 2
@@ -770,7 +719,6 @@ sync-full() {
         --read ".ai/.aider-sync-context.txt" \
         --file ".ai/context/project-map.md" \
         --file ".ai/context/domain-map.md" \
-        --yes \
         --message "Leia o contexto fornecido (que contém a árvore de diretórios no topo e amostras de código) e atue como Context Builder. ATUALIZE IMEDIATAMENTE os arquivos .ai/context/project-map.md e .ai/context/domain-map.md com:
 - Mapa completo de componentes, serviços, módulos, páginas e suas responsabilidades
 - Endpoints de API identificados (URLs, métodos, parâmetros)
@@ -785,6 +733,7 @@ NUNCA crie regras de negócio, apenas mapeie o que existe. NUNCA modifique códi
 # Comando para atualizar o mapa de apenas um módulo específico (econômico)
 # Uso: sync-module <caminho-do-modulo> [--model <modelo>]
 sync-module() {
+    echo "⚠️ AVISO: Comando legado; o repo-map nativo do Aider agora substitui este fluxo."
     if [ -z "$1" ] || [[ "$1" == --* ]]; then
         echo "❌ ERRO: Uso: sync-module <caminho-do-modulo> [--model <modelo>]"
         echo "Exemplo: sync-module src/app/pages/logged/appointments"
@@ -820,7 +769,6 @@ sync-module() {
         --file "$MODULO" \
         --file ".ai/context/project-map.md" \
         --file ".ai/context/domain-map.md" \
-        --yes \
         --message "Atue como Context Builder. Leia APENAS o módulo especificado ($MODULO). Atualize os arquivos .ai/context/project-map.md e .ai/context/domain-map.md INTEGRANDO o que você aprendeu deste módulo sem perder o que já existe sobre os outros módulos. NÃO faça perguntas. NÃO modifique código fonte." "$@"
 }
 

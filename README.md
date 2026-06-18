@@ -2,7 +2,7 @@
 
 O Aider OS evoluiu. Ele não é mais apenas um conjunto de prompts para o modelo de linguagem tentar entender o seu código lendo milhares de arquivos no escuro. 
 
-Aider OS v2.0 é um **Sistema Operacional de Governança de Código** que atua como um **Language Server + RAG**. Ele orquestra ferramentas maduras de mercado (Compodoc, OpenAPI, TypeDoc, LSP) para extrair o AST do seu projeto, construir um Banco de Conhecimento relacional nativo (Entidades e Grafo) e permitir que você e a IA naveguem na arquitetura em **milissegundos**, com custo zero de tokens e mitigação total de alucinações.
+Aider OS v2.0 é um **Sistema Operacional de Governança de Código** que atua como um **Language Server + RAG + MCP (Model Context Protocol)**. Ele orquestra ferramentas maduras de mercado (Compodoc, OpenAPI, TypeDoc, LSP) para extrair o AST do seu projeto, construir um Banco de Conhecimento relacional nativo (Entidades e Grafo) e permitir que você e a IA naveguem na arquitetura em **milissegundos**, com custo zero de tokens e mitigação total de alucinações.
 
 O problema não é "fazer a IA ler o código". O problema resolvido aqui é **"Como não precisar que a IA leia o código inteiro para achar uma tela e suas dependências"**.
 
@@ -41,7 +41,6 @@ O coração do Aider OS reside na pasta `.ai/`.
 ├─ knowledge/
 │  ├─ entities.json (O catálogo universal de todas as telas, serviços, models, endpoints)
 │  └─ graph.json (O grafo de arestas: quem chama quem, quem depende de quem)
-│
 ├─ providers/ (Adaptadores Python para Compodoc, OpenAPI, TypeDoc)
 ├─ tooling/catalog/ (Regras YAML de detecção de stack)
 └─ cache/ (Artefatos brutos extraídos pelas ferramentas)
@@ -51,14 +50,56 @@ O sistema não gera "enciclopédias Markdown" gigantes e inúteis. Ele gera **da
 
 ---
 
-## 🚀 Os Comandos do Aider OS (Manual de Referência)
+## � Model Context Protocol (MCP)
+
+O Aider OS integra-se com o **MCP (Model Context Protocol)** para fornecer ferramentas nativas à IA:
+1. **filesystem**: Acesso seguro ao sistema de arquivos
+2. **code-rag**: Busca na memória indexada do projeto via `search_project_memory` e `get_project_map`
+3. **codebase-rag**: Busca semântica no código via ChromaDB (em desenvolvimento)
+
+A configuração MCP está em `mcp/mcp.json`.
+
+---
+
+## �️ Repo-Map Nativo do Aider
+
+O Aider OS agora usa o **repo-map nativo do Aider**, gerado automaticamente via Ctags/Tree-Sitter. Isso fornece contexto inteligente para a IA sem esforço manual.
+
+### Como usar no dia a dia:
+1. **Uso automático**: Quando você inicia o Aider (via `agent` ou diretamente), o repo-map é gerado e atualizado dinamicamente.
+2. **Ver o mapa na sessão**:
+   ```bash
+   /map
+   ```
+3. **Atualizar o mapa na sessão**:
+   ```bash
+   /map-refresh
+   ```
+4. **Ver o mapa no terminal (fora do Aider)**:
+   ```bash
+   aider --show-repo-map
+   ```
+
+### O que o repo-map faz:
+- Inclui classes, funções, assinaturas e dependências importantes
+- Ajusta dinamicamente conforme o estado da conversação
+- Evita que a IA "invente" estrutura por falta de contexto
+- Não é um arquivo Markdown manual — é mantido automaticamente
+
+### Diferença entre repo-map e grafo local:
+- **repo-map**: Contexto de conversa para a IA (dinâmico)
+- **Grafo local (where/impact/feature)**: Índice operacional para você (determinístico, local, $0 de tokens)
+
+---
+
+## �🚀 Os Comandos do Aider OS (Manual de Referência)
 
 Esta tabela serve como seu documento de consulta rápida para o dia a dia.
 
 ### 1. 🏭 ETL de Conhecimento
 | Comando | Descrição Completa e Casos de Uso |
 | :--- | :--- |
-| `bootstrap` | **[Pipeline de Extração]** Roda apenas uma vez ou quando o projeto sofrer mudanças drásticas. Detecta a sua stack, aciona o Provider correto (Compodoc, OpenAPI, TypeDoc ou Repomix), normaliza os dados e gera o `entities.json` e o `graph.json`. **Não consome IA, apenas processamento local.** |
+| `bootstrap [modelo]` | **[Pipeline de Extração]** Roda apenas uma vez ou quando o projeto sofrer mudanças drásticas. Detecta a sua stack, aciona o Provider correto (Compodoc, OpenAPI, TypeDoc ou Repomix), normaliza os dados e gera o `entities.json` e o `graph.json`. **Não consome IA, apenas processamento local.** |
 
 ### 2. ⚡ Consultas Rápidas (Respostas em milissegundos sem gastar Tokens)
 | Comando | Descrição Completa e Casos de Uso |
@@ -70,42 +111,47 @@ Esta tabela serve como seu documento de consulta rápida para o dia a dia.
 ### 3. 🧠 RAG (Retrieval-Augmented Generation)
 | Comando | Descrição Completa e Casos de Uso |
 | :--- | :--- |
-| `brain-index <caminho_projeto> <nome_projeto>` | Indexa um projeto no banco de dados RAG local, para consultas rápidas posteriores. |
+| `brain-index <caminho_projeto> <nome_projeto>` | Indexa um projeto no banco de dados RAG local, para consultas rápidas posteriores via as ferramentas MCP `search_project_memory` e `get_project_map`. |
 | `python rag/rag_cli.py search <query> [nome_projeto]` | Busca no índice RAG um tópico (ex: `search "AppointmentService" dashboard-manager`). Se o projeto não for informado, tenta detectar automaticamente pelo git root. |
 | `python rag/rag_cli.py map [nome_projeto]` | Mostra a estrutura de arquivos do projeto indexado. |
 
 ### 4. 🎯 Orquestração Contextual com IA
 | Comando | Descrição Completa e Casos de Uso |
 | :--- | :--- |
-| `agent [modelo]` | **[Core]** Inicia o agente Aider com o modelo de linguagem (padrão: `o3-mini`). Carrega automaticamente as skills base e regras do projeto. |
+| `agent [modelo]` | **[Core]** Inicia o agente Aider com o modelo de linguagem (padrão: `o3-mini`). Carrega automaticamente as skills base, regras do projeto, e usa o repo-map nativo do Aider para contexto. |
 | `ask [modelo]` | Modo "Ask" (perguntas rápidas) sem contexto de arquivo. |
 | `study [modelo]` | Modo "Ask" sem Git (ideal para estudo e exploração). |
 | `ask-refactor [modelo]` | Modo Ask especializado em refatorações (carrega skills de análise, arquitetura, refatoração enterprise e testes). |
 | `ask-migration [modelo]` | Modo Ask especializado em migrações de código/tecnologia. |
 | `ask-enterprise [modelo]` | Modo Ask completo para empresas (inclui análise, segurança, performance, observabilidade e governança). |
-| `feature <nome>` | **[Foco de Laser]** A IA atua. Ela varre as entidades associadas a essa feature, entende a conexão Tela → Service → Endpoint via Grafo, isola esse contexto microscópico, e gera o relatório arquitetural perfeito. O LLM recebe APENAS o que importa. |
+| `feature <nome> [modelo]` | **[Foco de Laser]** A IA atua. Ela varre as entidades associadas a essa feature, entende a conexão Tela → Service → Endpoint via Grafo, isola esse contexto microscópico, e gera o relatório arquitetural perfeito. O LLM recebe APENAS o que importa. |
 
 ### 5. 🧠 Planejamento e Decisão Estrutural
 | Comando | Descrição Completa e Casos de Uso |
 | :--- | :--- |
-| `architect "<problema>"`| **[Mudança Estrutural]** Requer um problema obrigatório (ex: `architect "Migrar para Redux"`). A IA não escreve código, apenas analisa trade-offs e gera arquivos oficiais `ADR-001.md`. |
-| `design "<demanda>"` | **[Mudança Tática]** Requer a demanda local (ex: `design "Tela de login"`). Desenha a estrutura de componentes, eventos e fluxos. |
-| `plan <demanda/ADR>` | **[Tech Lead]** Pega um ADR ou demanda e gera um checklist executável no `.ai/plans/PLAN-XXX.md`. |
+| `architect "<problema>" [modelo]` | **[Mudança Estrutural]** Requer um problema obrigatório (ex: `architect "Migrar Context API para Redux"`). A IA não escreve código, apenas analisa trade-offs e gera arquivos oficiais `ADR-001.md`. |
+| `design "<demanda>" [modelo]` | **[Mudança Tática]** Requer a demanda local (ex: `design "Tela de login"`). Desenha a estrutura de componentes, eventos e fluxos. |
+| `plan "<demanda>" [--model <modelo>]` | **[Tech Lead]** Pega uma demanda e gera um checklist executável no `.ai/plans/PLAN-XXX.md`, numerado automaticamente. |
 
 ### 6. 🔨 Execução e Convergência (Codificação)
 | Comando | Descrição Completa e Casos de Uso |
 | :--- | :--- |
-| `dev <plano.md>` | **[Motor Restrito]** A IA atua como pedreiro copiando os padrões contidos no golden path `.ai/examples/`. O dev segue fielmente as tasks do plano. |
-| `standardize <alvo> [--audit|--plan|--fix]` | **[Padronizador]** Força o código a convergir ao padrão da empresa. |
-| `code-review <arquivo/diretorio>` | **[Tribunal do Código]** Audita qualidade, segurança e arquitetura de um arquivo ou diretório, gerando um laudo detalhado. |
-| `review` | **[Revisão Operacional]** Revisão rápida de PR focada em limpeza, variáveis não usadas, logs e erros sintáticos. |
-| `debug` | **[Investigação de Bug]** Usa Root Cause Analysis e Bug Hunter para encontrar a causa raiz de um problema. |
+| `dev <plano.md> [--model <modelo>]` | **[Motor Restrito]** A IA atua como pedreiro copiando os padrões contidos no golden path `.ai/examples/`. O dev segue fielmente as tasks do plano. |
+| `standardize <alvo> [--audit | --plan | --fix] [--model <modelo>]` | **[Padronizador]** Força o código a convergir ao padrão da empresa. |
+| `code-review <arquivo/diretorio> [--model <modelo>]` | **[Tribunal do Código]** Audita qualidade, segurança e arquitetura de um arquivo ou diretório, gerando um laudo detalhado com SCORE (0-100). |
+| `review [--model <modelo>]` | **[Revisão Operacional]** Revisão rápida de PR focada em limpeza, variáveis não usadas, logs e erros sintáticos. |
+| `debug [modelo]` | **[Investigação de Bug]** Usa Root Cause Analysis e Bug Hunter para encontrar a causa raiz de um problema. |
 
 ### 7. 🛠️ Ferramentas Auxiliares
 | Comando | Descrição Completa e Casos de Uso |
 | :--- | :--- |
 | `bundle [output_file]` | Empacota o código do projeto em um arquivo texto (usando Repomix) para contexto rápido. |
 | `draft-rules [modelo]` | Analisa o código do projeto e extrai automaticamente as regras de projeto, coding style e arquitetura, gerando `.ai/rules/project-rules.md`. |
+
+### 8. ⚠️ Comandos Legados (Deprecados)
+Os comandos abaixo são substituídos pelo **repo-map nativo do Aider**, que é mais rápido e eficiente:
+- `sync-full [--model <modelo>]`
+- `sync-module <caminho-do-modulo> [--model <modelo>]`
 
 ---
 
@@ -123,7 +169,7 @@ O Aider OS usa skills especializadas para diferentes tarefas:
 | Skill | Propósito |
 | :--- | :--- |
 | `analysis.md` | Análise geral de código e arquitetura. |
-| `context-builder.md` | Constrói contexto para a IA. |
+| `context-builder.md` | Constrói contexto para a IA (usado em comandos legados). |
 | `investigation.md` | Investigação de problemas. |
 
 ### Skills de Bug e Depuração

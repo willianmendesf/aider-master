@@ -15,6 +15,6 @@ Sua missão é atuar como um Engenheiro de Confiabilidade (SRE/Debugger). Diante
 
 # Rastreabilidade e Solução
 Ao sugerir a correção:
-- Relacione o bug ao domínio/módulo descrito no `project-map.md`.
+- Relacione o bug ao domínio/módulo analisando o repo map fornecido.
 - **NUNCA** aplique a solução imediatamente.
 - Primeiro apresente o **Relatório RCA**. Depois de apresentar o relatório, espere a aprovação do usuário, ou forneça o snippet de correção rastreável (ex: `// Fix for Bug: [Descrição]`).
