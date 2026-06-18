@@ -77,16 +77,30 @@ def cmd_where(args):
                 print(f"   Linha {line_num}: {line_content}")
         return
 
-    found = False
+    matches = []
     for e in entities:
         if term in e.get("name", "").lower() or term in e.get("id", "").lower():
-            found = True
-            print(f"📍 {e.get('name')} ({e.get('type')})")
-            print(f"   Arquivo: {e.get('file')}")
-            print(f"   Linha: {e.get('line')}\n")
+            matches.append(e)
 
-    if not found:
+    if not matches:
         print(f"⚠️ Nenhuma entidade encontrada para '{term}'.")
+        return
+
+    if len(matches) == 1:
+        e = matches[0]
+        print("📍 ENCONTRADO\n")
+        print(f"Nome:\n  {e.get('name')}")
+        print(f"Tipo:\n  {e.get('type').capitalize()}")
+        print(f"Arquivo:\n  {e.get('file')}")
+        print(f"Linha:\n  {e.get('line')}")
+        print(f"Fonte:\n  {e.get('source')} ({e.get('confidence')}%)")
+    else:
+        print("📍 MÚLTIPLOS RESULTADOS\n")
+        for idx, e in enumerate(matches, 1):
+            print(f"[{idx}] {e.get('name')}")
+            print(f"    Tipo: {e.get('type').capitalize()}")
+            print(f"    Arquivo:\n    {e.get('file')}\n")
+        print(f"Total:\n  {len(matches)} resultados")
 
 def cmd_discover(args):
     if not args:
@@ -113,17 +127,82 @@ def cmd_discover(args):
                 print(f"   Linha {line_num}: {line_content}")
         return
 
-    found = False
-    for e in entities:
-        if term in e.get("name", "").lower() or term in e.get("id", "").lower():
-            found = True
-            print(f"🔍 Encontrado: {e.get('name')}")
-            print(f"   Tipo: {e.get('type')}")
-            print(f"   Arquivo: {e.get('file')}:{e.get('line')}")
-            print(f"   Confiança: {e.get('confidence')}% (Fonte: {e.get('source')})\n")
-
-    if not found:
+    matches = [e for e in entities if term in e.get("id", "").lower() or term in e.get("name", "").lower()]
+    if not matches:
         print(f"⚠️ Nenhuma entidade encontrada para '{term}'.")
+        return
+
+    # find exact if possible
+    exact_matches = [e for e in matches if term == e.get("name", "").lower()]
+    e = exact_matches[0] if exact_matches else matches[0]
+
+    graph = load_json(GRAPH_FILE)
+    edges = graph.get("edges", [])
+    
+    dependencies = set()
+    consumers = set()
+    for edge in edges:
+        if edge.get("from_node") == e.get("id"):
+            dependencies.add(edge.get("to_node"))
+        if edge.get("to_node") == e.get("id"):
+            consumers.add(edge.get("from_node"))
+            
+    ent_by_id = {ent.get("id"): ent for ent in entities}
+    dep_services = []
+    dep_components = []
+    dep_models = []
+    
+    for d in dependencies:
+        d_ent = ent_by_id.get(d)
+        if not d_ent: continue
+        t = d_ent.get("type", "").lower()
+        name = d_ent.get("name", d)
+        if t == "service": dep_services.append(name)
+        elif t in ("component", "directive"): dep_components.append(name)
+        elif t in ("model", "interface", "class"): dep_models.append(name)
+        
+    num_deps = len(dependencies)
+    num_cons = len(consumers)
+    num_models = len(dep_models)
+    
+    complexidade = "BAIXA"
+    if num_deps > 10 or num_cons > 10:
+        complexidade = "ALTA"
+    elif num_deps >= 5 or num_cons >= 3:
+        complexidade = "MÉDIA"
+        
+    feature_name = e.get("feature", ["(Nenhuma mapeada)"])
+    feature_str = feature_name[0] if feature_name else "(Nenhuma mapeada)"
+    
+    print("=======================================")
+    print(" 🔎 DISCOVERY REPORT")
+    print("=======================================\n")
+    print(f"Nome:\n  {e.get('name')}\n")
+    print(f"Tipo:\n  {e.get('type').capitalize()}\n")
+    print(f"Arquivo:\n  {e.get('file')}\n")
+    print(f"Origem:\n  {e.get('source')} ({e.get('confidence')}%)\n")
+    print(f"Pertence à Feature:\n  {feature_str}\n")
+    
+    if dep_services or dep_components:
+        print("Utiliza:")
+        for d in sorted(dep_services + dep_components):
+            print(f"  - {d}")
+        print("")
+        
+    if dep_models:
+        print("Models:")
+        for m in sorted(dep_models):
+            print(f"  - {m}")
+        print("")
+        
+    print("Resumo:\n")
+    print(f"  O elemento {e.get('name')} atua como {e.get('type').capitalize()}.\n  Possui {num_deps} dependências diretas para execução.\n")
+
+    print("Relacionamentos:")
+    print(f"  {num_deps} dependências diretas")
+    print(f"  {num_models} models associados")
+    print(f"  {num_cons} consumidores detectados\n")
+    print(f"Complexidade:\n  {complexidade}\n")
 
 def cmd_impact(args):
     if not args:
