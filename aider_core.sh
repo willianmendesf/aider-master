@@ -1013,26 +1013,42 @@ standardize() {
 - .ai/examples
 - .ai/rules/project-rules.md
 
+## Objetivo
+Refatorar a tela alvo para melhorar organização, legibilidade e aderência ao padrão, preservando comportamento funcional.
+
 ## Tarefas
 <!-- INSIRA_AS_TAREFAS_AQUI -->
 EOF
 
         local MENSAGEM="Você recebeu .ai/cache/standardize-report.md gerado por script determinístico.
 
-Substitua a tag <!-- INSIRA_AS_TAREFAS_AQUI --> no arquivo $TMP_PLANO pelas tarefas rastreáveis.
+Substitua a tag <!-- INSIRA_AS_TAREFAS_AQUI --> no arquivo $TMP_PLANO por um plano executável de refatoração segura.
 
-Regras:
-- Use os IDs STD-001, STD-002 etc.
-- Não invente evidências.
-- Não audite novamente.
-- Não altere código.
-- Preserve endpoints, clients, payloads, models e regras de negócio.
+Obrigatório:
+- Usar SOMENTE os achados STD do relatório.
+- Para cada tarefa, explicar:
+  1. Como está hoje
+  2. Como precisa ficar
+  3. Arquivo afetado
+  4. Ação objetiva
+  5. Critério de aceite
+- Agrupar STDs relacionados.
+- Separar TypeScript, Service, HTML e SCSS quando aplicável.
+- Não alterar regra de negócio.
+- Não alterar endpoint.
+- Não alterar payload.
+- Não alterar model.
+- Não inventar arquivos que não estejam evidenciados.
+- Não gerar tarefa genérica.
 
 Formato OBRIGATÓRIO de cada tarefa:
-[ ] TASK-001 — Resolver STD-001
-- Evidência: [evidência exata do laudo]
-- Ação segura: [sua recomendação]
-- Arquivos prováveis: [arquivo alvo]
+[ ] TASK-001 — [Nome da Tarefa]
+- STD relacionado: [IDs]
+- Como está: [descrição]
+- Como precisa ficar: [descrição]
+- Arquivo afetado: [arquivo]
+- Ação objetiva: [ação]
+- Critério de aceite: [critério]
 "
         echo "📏 Planejando Padronização em $ALVO (Gerando rascunho em $TMP_PLANO)..."
         agent "$modelo" "${SKILLS[@]}" "${CONTEXT_ARGS[@]}" --file "$TMP_PLANO" --yes --message "$MENSAGEM" "$@"
