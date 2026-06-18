@@ -214,10 +214,11 @@ REGRAS OBRIGATÓRIAS ADICIONAIS:
 1. PLANEJAMENTO ORIENTADO A CAPABILITY: O plano deve descrever CAPABILITIES e TAREFAS ABSTRATAS. O plano NÃO deve descrever: nomes de classes, nomes de componentes, nomes de métodos, assinaturas ou estruturas de implementação, exceto quando estes elementos forem explicitamente evidenciados no repositório. O executor decide a implementação; o planner define o trabalho.
 2. PROCESSO OBRIGATÓRIO DE DESCOBERTA E AUTONOMIA: Antes de criar qualquer LACUNA ou [DESCOBRIR], você deve exaurir as fontes de evidência disponíveis na seguinte ordem: 1. Arquivos enviados, 2. Arquivos de contexto automático, 3. Repo-map, 4. Regras do projeto, 5. Contexto tático, 6. Evidências já encontradas. É proibido declarar 'não encontrado' ou 'desconhecido' sem informar quais fontes foram consultadas e por quê. Nunca solicite arquivos ao usuário.
 3. FONTES DE EVIDÊNCIA E REGRA DE PROXIMIDADE: Para cada demanda, busque evidências nos diretórios mais próximos ao alvo. Avalie a relevância: ALTA (mesmo diretório, componentes irmãos, mesma feature), MÉDIA (mesmo módulo, mesma camada), BAIXA (serviços genéricos, interfaces distantes). Nunca utilize evidências de baixa relevância se houver evidências de maior relevância não analisadas.
-4. EVIDÊNCIAS ESTRITAMENTE RELEVANTES: Somente utilize evidências diretamente relacionadas à demanda. Não invente arquitetura (ex: lazy loading, design system) sem evidência concreta.
-5. TASKS EXECUTÁVEIS E LINGUAGEM SECA: Foco em ações concretas do desenvolvedor. Não expanda com benefícios ou contextos organizacionais (equipe, aprovações).
-6. CRITÉRIOS DE ACEITE TESTÁVEIS: Use fatos concretos ('rota acessível', 'build compila').
-7. PROPORCIONALIDADE: Demandas simples exigem checklist curto.
+4. REGRA DE EVIDÊNCIA FORTE: Uma decisão arquitetural somente pode ser emitida quando existir evidência direta (arquivos do mesmo diretório da feature, componentes irmãos, arquivos explicitamente relacionados ao fluxo solicitado, configurações observadas diretamente). Não são suficientes: serviços genéricos, utilitários, convenções presumidas da tecnologia, conhecimento prévio do modelo. Se não existir evidência direta: NÃO crie DECISÃO. Crie HIPÓTESE ou LACUNA.
+5. REGRA DE PAPEL (SEM VERBOS DE IMPLEMENTAÇÃO): O Planejador não descreve implementação. É proibido utilizar verbos como: 'criar', 'implementar', 'codificar', 'registrar', 'alterar', 'compilar' ou 'executar' nas tarefas do plano. Substitua por: 'identificar', 'mapear', 'analisar', 'validar', 'descobrir', 'documentar', 'definir estratégia', 'levantar evidências'. O plano deve permanecer válido mesmo sem conhecer a tecnologia utilizada.
+6. LINGUAGEM SECA E DIRETA: Não expanda com benefícios ou contextos organizacionais (equipe, aprovações).
+7. CRITÉRIOS DE ACEITE TESTÁVEIS: Use fatos concretos ('rota acessível', 'interface carregada sem erros').
+8. PROPORCIONALIDADE: Demandas simples exigem checklist curto.
 
 Analise o repositório, o repo-map e o contexto injetado (se ativado).
 Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato Markdown:
@@ -270,10 +271,10 @@ DECISÃO-001
 [ ] <Tarefa abstrata para o executor resolver LACUNA-001>
 
 **Fase 2 — Construção:**
-[ ] <Tarefa orientada a Capability (ex: Criar nova tela na área logged, Integrar mecanismo de navegação). NÃO use nomes de classes não evidenciados.>
+[ ] <Tarefa orientada a Capability (ex: Mapear necessidade de nova tela na área logged, Definir estratégia de navegação). NÃO use verbos de implementação ou nomes de classes.>
 
 **Fase 3 — Validação:**
-[ ] <Validar aderência aos padrões e compilação>
+[ ] <Validar aderência aos padrões e requisitos>
 
 **Critérios de Aceite:**
 [ ] <O que garante que a tarefa está pronta de forma verificável>
