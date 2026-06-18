@@ -993,9 +993,45 @@ standardize() {
     local CONTEXT_ARGS=(--read ".ai/cache/standardize-report.md")
 
     if [ "$FLAG" == "--plan" ]; then
-        local MENSAGEM="Atue como Standardizer. Você recebeu um relatório factual gerado por script determinístico (em standardize-report.md). Não invente evidências. Não audite novamente. Não questione fatos do relatório. Sua tarefa: Criar um PLAN-XXX.md na pasta .ai/plans/ com tarefas seguras para padronizar o alvo. Priorize: organização da classe, redução de complexidade, separação de responsabilidades, legibilidade, aderência ao Golden Path. Preserve: endpoints, clients, payloads, models, regras de negócio, comportamento específico do alvo. Não altere o código fonte."
-        echo "📏 Planejando Padronização em $ALVO..."
-        agent "$modelo" "${SKILLS[@]}" "${CONTEXT_ARGS[@]}" --message "$MENSAGEM" "$@"
+        mkdir -p .ai/plans
+        local PROXIMO_NUM=1
+        if ls .ai/plans/PLAN-*.md 1> /dev/null 2>&1; then
+            PROXIMO_NUM=$(( $(ls -1 .ai/plans/PLAN-*.md | wc -l) + 1 ))
+        fi
+        
+        local NOME_PLANO="PLAN-$(printf "%03d" $PROXIMO_NUM)"
+        local PLANO_ARQUIVO=".ai/plans/${NOME_PLANO}.md"
+        touch "$PLANO_ARQUIVO"
+
+        local MENSAGEM="Você recebeu .ai/cache/standardize-report.md gerado por script determinístico.
+
+Crie um plano rastreável em $PLANO_ARQUIVO.
+
+Regras:
+- Use os IDs STD-001, STD-002 etc.
+- Não invente evidências.
+- Não audite novamente.
+- Não altere código.
+- Preserve endpoints, clients, payloads, models e regras de negócio.
+
+Formato obrigatório:
+# $NOME_PLANO
+
+## Sources
+- .ai/cache/standardize-report.md
+- .ai/examples
+- .ai/rules/project-rules.md
+
+## Tarefas
+[ ] TASK-001 — Resolver STD-001
+- Evidência:
+- Ação segura:
+- Arquivos prováveis:
+
+[ ] TASK-002 — Resolver STD-002
+..."
+        echo "📏 Planejando Padronização em $ALVO (Arquivo: $PLANO_ARQUIVO)..."
+        agent "$modelo" "${SKILLS[@]}" "${CONTEXT_ARGS[@]}" --file "$PLANO_ARQUIVO" --yes --message "$MENSAGEM" "$@"
     elif [ "$FLAG" == "--fix" ]; then
         local MENSAGEM="Atue como Standardizer. Você recebeu um relatório factual gerado por script determinístico (em standardize-report.md). Sua tarefa: Analisar e EXECUTAR as adequações no código do alvo para convergir estritamente aos padrões documentados no laudo."
         if [ -f "$ALVO" ]; then
