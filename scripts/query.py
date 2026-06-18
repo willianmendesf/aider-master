@@ -212,53 +212,48 @@ def cmd_impact(args):
     else:
         score = "BAIXO"
 
-    print("IMPACT REPORT\n")
-    print(f"Alvo:\n  {target_id}\n")
+    print("=======================================")
+    print(" 💥 IMPACT REPORT")
+    print("=======================================\n")
+    print(f"Alvo:\n  {target_ent.get('name') if target_ent else target_id}\n")
     
-    print("Usado por (diretos):")
-    if direct_dependents:
-        for d in direct_dependents:
-            print(f"  - {d}")
-    else:
-        print("  (nenhum)")
-    print("")
+    if target_ent:
+        print(f"Tipo:\n  {target_ent.get('type').capitalize()}\n")
+        print(f"Arquivo:\n  {target_ent.get('file')}\n")
 
     if dependencies:
-        print("Depende de:")
-        for d in dependencies:
+        print("Dependências Diretas (Usa):")
+        for d in sorted(dependencies):
             print(f"  - {d}")
         print("")
 
-    print(f"Impact Score: {score}\n")
-    
-    print(f"Dependentes Diretos:\n  {len(direct_dependents)}\n")
-    print(f"Dependentes Indiretos:\n  {len(indirect_dependents)}\n")
-    print(f"Endpoints:\n  {len(endpoints_afetados)}\n")
-    print(f"Telas:\n  {len(telas_afetadas)}\n")
+    if direct_dependents:
+        print("Consumidores (Usado por):")
+        for d in sorted(direct_dependents):
+            print(f"  - {d}")
+        print("")
 
     if endpoints_afetados:
-        print("Endpoints afetados:")
-        for ep in endpoints_afetados:
+        print("Endpoints Relacionados:")
+        for ep in sorted(endpoints_afetados):
             print(f"  - {ep}")
         print("")
         
-    if telas_afetadas:
-        print("Telas afetadas:")
-        for t in telas_afetadas:
-            print(f"  - {t}")
-        print("")
-        
     if models_afetados:
-        print("Models afetados:")
-        for m in models_afetados:
+        print("Models / Interfaces Utilizadas:")
+        for m in sorted(models_afetados):
             print(f"  - {m}")
         print("")
 
-    if arquivos_afetados:
-        print("Arquivos do Raio de Quebra:")
-        for arq in sorted(arquivos_afetados):
-            print(f"  {arq}")
-        print("")
+    print("Raio de Quebra:\n")
+    if num_dependents == 0:
+        print(f"  SE ALTERAR '{target_id}':\n    Afeta apenas ele mesmo (Componente/Serviço Folha).")
+    else:
+        print(f"  SE ALTERAR '{target_id}':\n    Pode quebrar {len(direct_dependents)} consumidores diretos e {len(indirect_dependents)} indiretos.")
+        if telas_afetadas:
+            print(f"    Telas Afetadas: {', '.join(telas_afetadas[:3])}" + ("..." if len(telas_afetadas) > 3 else ""))
+
+    print(f"\nImpact Score:\n  {score}\n")
 
 def cmd_feature(args):
     if not args:
