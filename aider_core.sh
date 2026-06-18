@@ -971,7 +971,21 @@ standardize() {
     # 2. Fluxo por Flag
     if [ "$FLAG" == "--audit" ]; then
         echo "✅ Auditoria concluída. Relatório factual:"
-        cat .ai/cache/standardize-report.md
+        # Usa awk para colorir as evidências no terminal mantendo o arquivo .md limpo
+        awk '
+        BEGIN { in_code = 0 }
+        /^```/ {
+            if (in_code) {
+                printf "\033[0m\n"
+                in_code = 0
+            } else {
+                printf "\033[34m\n"
+                in_code = 1
+            }
+            next
+        }
+        { print }
+        ' .ai/cache/standardize-report.md
         return 0
     fi
 

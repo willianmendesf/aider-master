@@ -97,12 +97,12 @@ def main():
     else:
         for f in findings:
             md_lines.append(f"### {f['id']}")
-            md_lines.append(f"- **Classificação**: {f['classification']}")
-            md_lines.append(f"- **Severidade**: {f['severity']}")
-            md_lines.append(f"- **Arquivo**: {f['file']}")
-            md_lines.append(f"- **Evidência**: {f['evidence']}")
-            md_lines.append(f"- **Problema**: {f['problem']}")
-            md_lines.append(f"- **Recomendação**: {f['recommendation']}\n")
+            md_lines.append(f" • Classificação: {f['classification']}")
+            md_lines.append(f" • Severidade: {f['severity']}")
+            md_lines.append(f" • Arquivo: {f['file']}")
+            md_lines.append(f" • Evidência:\n\n```typescript\n{f['evidence']}\n```\n")
+            md_lines.append(f" • Problema: {f['problem']}")
+            md_lines.append(f" • Recomendação: {f['recommendation']}\n")
 
     with open(args.out_md, 'w', encoding='utf-8') as f:
         f.write('\n'.join(md_lines))

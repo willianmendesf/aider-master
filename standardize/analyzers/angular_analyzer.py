@@ -44,7 +44,7 @@ def analyze(target_path, ref_path=None, examples_path=None):
         )
         # Arrow function handlers
         arrow_pattern = re.compile(
-            r'^\s*(?:public |private |protected )?(?:readonly\s+)?([a-zA-Z_]\w*)\s*=\s*(?:\([^)]*\)|[a-zA-Z_]\w*)\s*=>\s*\{?', 
+            r'^\s*(?:public |private |protected )?(?:readonly\s+)?([a-zA-Z_]\w*)\s*=\s*(?:\([^)]*\)|[a-zA-Z_]\w*)\s*=>\s*\{', 
             re.MULTILINE
         )
         
