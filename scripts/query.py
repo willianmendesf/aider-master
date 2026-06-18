@@ -422,6 +422,37 @@ def cmd_impact(args):
         print(f"  - {j}")
     print("")
 
+    # Nova Seção: Recomendação Direta e Risco
+    print("RECOMENDAÇÃO:\n")
+    if score == "BAIXO":
+        print("  ✅ Pode alterar com segurança.")
+        print("\n  Motivo:\n    Nenhuma outra tela ou serviço central depende diretamente.")
+        print("\n  Risco:\n    Apenas regressão local (contido no próprio arquivo).")
+        print("\n  Necessário testar:")
+        if target_ent and target_ent.get("type", "").lower() == "component":
+            print(f"    - Renderização da tela {target_ent.get('name')}")
+        else:
+            print(f"    - Lógica isolada de {target_ent.get('name') if target_ent else target_id}")
+    elif score == "MÉDIO":
+        print("  ⚠️ Alteração requer atenção moderada.")
+        print("\n  Motivo:\n    Existem consumidores diretos na cadeia de injeção.")
+        print("\n  Risco:\n    Pode quebrar contratos internos ou o comportamento de telas próximas.")
+        print("\n  Necessário testar:")
+        print(f"    - {target_ent.get('name') if target_ent else target_id}")
+        for c in cons_components[:2]:
+            print(f"    - Tela: {c}")
+    else:
+        print("  🚨 NÃO ALTERE DIRETAMENTE SEM PLANEJAMENTO.")
+        print(f"\n  Motivo:\n    Alto número de dependentes ({num_dependents} consumidores) ou endpoints críticos afetados.")
+        print("\n  Risco:\n    Efeito cascata severo. Uma mudança de contrato aqui quebra múltiplos fluxos.")
+        print("\n  Necessário testar:")
+        print("    - Suíte de regressão completa")
+        for ep in endpoints_afetados[:2]:
+            print(f"    - Fluxo do endpoint {ep}")
+        for c in cons_components[:3]:
+            print(f"    - Integração da tela {c}")
+    print("")
+
 def cmd_feature(args):
     if not args:
         print("❌ Uso: feature <Nome>")
@@ -473,6 +504,7 @@ def cmd_feature(args):
     telas = []
     services = []
     models = []
+    endpoints = []
     arquivos = set()
     feature_ids = set()
     
@@ -482,6 +514,7 @@ def cmd_feature(args):
         if t == "component": telas.append(e)
         elif t == "service": services.append(e)
         elif t in ("model", "interface", "class"): models.append(e)
+        elif t == "endpoint": endpoints.append(e)
         
         if e.get("file"): arquivos.add(e.get("file"))
             
@@ -518,9 +551,12 @@ def cmd_feature(args):
     print(f"FEATURE: {args[0].capitalize()}\n")
     
     if telas:
-        print("TELAS (Ponto de Entrada)")
+        print("PONTO DE ENTRADA")
+        print(f"  {telas[0].get('file')}\n")
+        
+        print("TELAS PRINCIPAIS")
         for t in sorted(telas, key=lambda x: x.get("name")):
-            print(f"- {t.get('name')}\n  {t.get('file')}")
+            print(f"- {t.get('name')}")
         print("")
         
     all_services = services + list(external_services.values())
@@ -530,6 +566,12 @@ def cmd_feature(args):
             print(f"- {s.get('name')}")
         print("")
         
+    if endpoints:
+        print("ENDPOINTS MAPEADOS")
+        for ep in sorted(endpoints, key=lambda x: x.get("name")):
+            print(f"- {ep.get('name')}")
+        print("")
+
     if models:
         print("MODELS (Domínio / Contratos)")
         for m in sorted(models, key=lambda x: x.get("name")):
@@ -557,6 +599,9 @@ def cmd_feature(args):
             print(" │\n ├── [INTEGRA/CHAMA]")
             for s in sorted(f_services):
                 print(f" │     └── {s}")
+                if endpoints:
+                    for ep in endpoints[:2]:
+                        print(f" │           ├── {ep.get('name')}")
                 
         if f_models:
             print(" │\n ├── [MANIPULA DADOS]")
@@ -569,6 +614,20 @@ def cmd_feature(args):
                 print(f"       └── {u}")
         print("")
     
+    print("GUIA DE DESENVOLVIMENTO (POR ONDE COMEÇAR)")
+    print("Se for implementar uma nova funcionalidade, siga a ordem:")
+    passo = 1
+    if telas:
+        print(f"  {passo}. {telas[0].get('name')} (Injete dependências e mude a UI)")
+        passo += 1
+    if all_services:
+        print(f"  {passo}. {all_services[0].get('name')} (Adicione a lógica de negócio ou integração HTTP)")
+        passo += 1
+    if models:
+        print(f"  {passo}. {models[0].get('name')} (Atualize a tipagem ou contrato do DTO)")
+        passo += 1
+    print("")
+
     print("ARQUIVOS RELEVANTES (Caminho Completo)")
     for i, f in enumerate(sorted(arquivos), 1):
         print(f"{f}")

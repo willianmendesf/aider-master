@@ -72,11 +72,14 @@ O projeto está configurado. O chefe mandou arrumar a classe "FinanceiroService"
 ### Cenário 4: O que vou quebrar se eu mudar isso? (Análise de Impacto)
 A dor clássica: "Se eu alterar a assinatura do `gerarBoleto()`, quais telas vão parar de funcionar?".
 
-1. **Descubra o Raio de Quebra**:
+1. **Descubra o Raio de Quebra e Decisão de Risco**:
    ```bash
    impact FinanceiroService
    ```
-   Navega pelo `graph.json` em ordem reversa (`used_by`) e avisa exatamente quais Telas, Endpoints e Serviços ficarão comprometidos pela alteração. Ele gera um Impact Score (ex: CRÍTICO) devidamente justificado (ex: "Afeta 8 Endpoints indiretamente").
+   Navega pelo `graph.json` em ordem reversa (`used_by`) e avisa exatamente quais Telas, Endpoints e Serviços ficarão comprometidos. Mais do que dados, ele gera uma **RECOMENDAÇÃO TÁTICA**:
+   - ✅ *"Pode alterar com segurança."* (Componente folha).
+   - 🚨 *"NÃO ALTERE DIRETAMENTE SEM PLANEJAMENTO."* (Componente core usado por dezenas de outros).
+   Ele lista exatamente o que você precisará testar na regressão.
 
 ---
 
