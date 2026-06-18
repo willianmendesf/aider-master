@@ -47,63 +47,63 @@ Você indexou o mapa de arquivos no Passo 1, mas agora a IA precisa saber *como*
 ---
 
 ### Cenário 3: Onde fica essa classe? (Investigação Rápida)
-O projeto está configurado. O chefe mandou arrumar a classe "FinanceiroService", mas você não sabe onde ela está num projeto de 5000 arquivos. 
+O projeto está configurado. O chefe mandou arrumar a classe "ServiceA", mas você não sabe onde ela está num projeto de 5000 arquivos. 
 
 1. **Localização Exata ("Onde está essa classe?")**:
    ```bash
-   where FinanceiroService
+   where ServiceA
    ```
    Resposta em milissegundos apontando o arquivo exato e a linha. Se houver múltiplos nomes parecidos, ele exibe uma lista limpa numerada.
 
-2. **Raio-X do Componente ("O que é isso?")**:
+2. **Raio-X do Componente ("O Que É Isso?")**:
    ```bash
-   discover Proposta
+   discover ModelX
    ```
    Informa o arquivo, a Feature a que pertence, e um relatório de **Saúde Arquitetural** para alertar se a classe está muito acoplada, tudo baseado puramente nos metadados do Grafo.
 
 3. **Mapa Mental Visual**:
    ```bash
-   discover Proposta --tree
+   discover ModelX --tree
    ```
    Desenha uma árvore ASCII instantânea no terminal para você visualizar a dependência do componente visualmente.
 
 ---
 
 ### Cenário 4: O que vou quebrar se eu mudar isso? (Análise de Impacto)
-A dor clássica: "Se eu alterar a assinatura do `gerarBoleto()`, quais telas vão parar de funcionar?".
+A dor clássica: "Se eu alterar a assinatura do `funcaoImportante()`, quais telas vão parar de funcionar?".
 
 1. **Descubra o Raio de Quebra e Decisão de Risco**:
    ```bash
-   impact FinanceiroService
+   impact ServiceA
    ```
    Navega pelo `graph.json` em ordem reversa (`used_by`) e avisa exatamente quais Telas, Endpoints e Serviços ficarão comprometidos. Mais do que dados, ele gera uma **RECOMENDAÇÃO TÁTICA**:
    - ✅ *"Pode alterar com segurança."* (Componente folha).
-   - 🚨 *"NÃO ALTERE DIRETAMENTE SEM PLANEJAMENTO."* (Componente core usado por dezenas de outros).
+   - 🚨 *"Não altere diretamente sem planejamento."* (Componente core usado por dezenas de outros).
    Ele lista exatamente o que você precisará testar na regressão.
 
 ---
 
 ### Cenário 5: Desenvolvendo uma Feature Baseada no Legado
-Você precisa trabalhar na feature "appointment". Em vez de adicionar arquivos manualmente, o Aider OS faz isso para você.
+Você precisa trabalhar na feature "xyz". Em vez de adicionar arquivos manualmente, o Aider OS faz isso para você.
 
 1. **Ver o contexto cirúrgico (sem IA)**:
    ```bash
-   feature appointment
+   feature xyz
    ```
    Mostra o ponto de entrada, telas principais, services (incluindo compartilhados), models, endpoints, componentes reutilizados, fluxo principal e lista de todos os arquivos relevantes.
 
 2. **Gerar um relatório explicativo via IA**:
    ```bash
-   feature appointment --ai
+   feature xyz --ai
    ```
    Ou use `--report` (alias para `--ai`).
 
 3. **Abrir diretamente no Aider com contexto completo + onboarding automático**:
    ```bash
-   feature appointment --open
+   feature xyz --open
    ```
    Isso:
-   - Abre o Aider com **todos os arquivos relevantes carregados** (incluindo reused_components e external_services como `api.service.ts` ou `access-control.service.ts`)
+   - Abre o Aider com **todos os arquivos relevantes carregados** (incluindo reused_components e external_services como `service-y.ts` ou `service-z.ts`)
    - Automaticamente dispara um onboarding que pede para a IA analisar a feature e explicar:
      1. Objetivo da feature
      2. Fluxo principal
@@ -115,24 +115,24 @@ Você precisa trabalhar na feature "appointment". Em vez de adicionar arquivos m
      - Sem escrever código!
    
    Exemplo de arquivos carregados:
-   - `appointments.component.ts`
-   - `appointment.model.ts`
-   - `appointment-execution-log.model.ts`
-   - `appointment-schedule.interface.ts`
-   - `modal.component.ts`
-   - `datatable.component.ts`
-   - `api.service.ts`
-   - `access-control.service.ts`
+   - `component-a.ts`
+   - `model-b.ts`
+   - `model-c.ts`
+   - `interface-d.ts`
+   - `component-e.ts`
+   - `component-f.ts`
+   - `service-y.ts`
+   - `service-z.ts`
    - E as regras (`project-rules.md`, `clean-code.md`).
 
    Depois do onboarding automático, você pode simplesmente conversar diretamente com a IA!
    Exemplos de perguntas:
-   - Onde eu preciso mexer para adicionar um novo campo "priority" no appointment?
-   - Quero adicionar um botão para duplicar um appointment existente.
+   - Onde eu preciso mexer para adicionar um novo campo "priority" no model?
+   - Quero adicionar um botão para duplicar um item existente.
 
 4. **Planeje a Mudança como um Tech Lead (se precisar de plano formal)**:
    ```bash
-   plan "Adicionar regra de desconto na Nova Proposta Previdência"
+   plan "Adicionar regra de desconto na Nova Feature XYZ"
    ```
    A IA fatiará a feature em pequenas tarefas de código num arquivo `PLAN-001.md`.
 
@@ -154,17 +154,17 @@ Se a sua tarefa é pequena e não exige um "Plano Oficial", você pode codar e g
    Isso abre a sessão do Aider já com o `repo-map` carregado.
 
 2. **Adicione Contexto no Chat**:
-   Descobriu com o `where` que o arquivo é o `proposta.service.ts`? Adicione-o à conversa:
+   Descobriu com o `where` que o arquivo é o `service-a.ts`? Adicione-o à conversa:
    ```text
-   /add src/services/proposta.service.ts
+   /add src/services/service-a.ts
    ```
 
 3. **Gere Código e Arquivos**:
    Basta pedir em linguagem natural na sessão:
    ```text
-   > crie um novo arquivo de Utils para datas e refatore o PropostaService para usá-lo.
+   > crie um novo arquivo de Utils para datas e refatore o ServiceA para usá-lo.
    ```
-   O Aider irá criar o arquivo, escrever o código, e aplicar a mudança. Como desativamos commits automáticos (`--no-auto-commits`), você revisa tudo no seu VSCode antes de commitar!
+   O Aider irá criar o arquivo, escrever o código, e aplicar a mudança, você revisa tudo no seu VSCode antes de commitar!
 
 ---
 
@@ -184,8 +184,8 @@ Mudança feita e bug corrigido. Hora de garantir que ninguém feriu os padrões 
 
 1. **Limpeza e Auditoria**:
    ```bash
-   standardize src/app/nova-proposta --audit
-   code-review src/app/nova-proposta
+   standardize src/app/feature-xyz --audit
+   code-review src/app/feature-xyz
    ```
    A IA verifica os padrões do seu `project-rules.md` e do `Golden Path`, punindo a entrega em caso de dívidas técnicas introduzidas, bloqueando lixo no código.
 

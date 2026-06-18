@@ -145,47 +145,93 @@ design() {
 
 # Comando para Fatiamento de Tarefas (Gera Plano Rastreável)
 plan() {
-    # O primeiro argumento SEMPRE é a demanda (string). Nunca é o modelo.
-    # Uso: plan "Minha demanda" [--model <id>]
     if [ -z "$1" ] || [[ "$1" == --* ]]; then
-        echo "❌ ERRO: Uso: plan \"Sua demanda descritiva\" [--model <modelo>]"
-        echo "Exemplo: plan \"Refatorar a classe Appointment para o padrão CQRS\""
+        echo "❌ ERRO: Uso: plan \"Sua demanda descritiva\" [--open] [--model <modelo>]"
+        echo "Exemplo: plan \"Criar tela HelloWorld na pasta logged\""
         return 1
     fi
     local DEMANDA="$1"
     shift
 
     local modelo="default"
-    if [ "$1" == "--model" ] && [ -n "$2" ]; then
-        modelo="$2"
-        shift 2
-    fi
+    local OPEN_AIDER=0
+    
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            --open) OPEN_AIDER=1 ;;
+            --model) 
+                modelo="$2"
+                shift ;;
+            *) modelo="$1" ;;
+        esac
+        shift
+    done
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
         --read "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
     )
 
-    # O repo-map nativo fornece o contexto automaticamente.
-
     echo "🗺️ Atuando como Tech Lead para fatiar o Plano de Ação..."
     echo "📝 Demanda: $DEMANDA"
     
-    # Determina o próximo número de plano e cria o arquivo na pasta atual
     mkdir -p .ai/plans
     local PROXIMO_NUM=1
     if ls .ai/plans/PLAN-*.md 1> /dev/null 2>&1; then
-        # Conta os arquivos e soma 1
         local COUNT=$(ls -1 .ai/plans/PLAN-*.md | wc -l)
         PROXIMO_NUM=$((COUNT + 1))
     fi
-    local PLANO_ARQUIVO=".ai/plans/PLAN-$(printf "%03d" $PROXIMO_NUM).md"
+    
+    local NOME_PLANO="PLAN-$(printf "%03d" $PROXIMO_NUM)"
+    local PLANO_ARQUIVO=".ai/plans/${NOME_PLANO}.md"
     touch "$PLANO_ARQUIVO"
 
+    local PLAN_PROMPT="Atue como Tech Lead Sênior. Demanda: $DEMANDA.
+SEU OBJETIVO É CRIAR UM PLANO DE AÇÃO EXECUTÁVEL.
+NÃO GERE CÓDIGO FONTE. 
+NÃO INVENTE ADRs INEXISTENTES OU TAREFAS GENÉRICAS COMO 'Revisar requisitos' OU 'Testes manuais'.
+
+Analise o repositório e os padrões do projeto para basear seu plano NA REALIDADE DO CÓDIGO (ex: quais rotas já existem, padrões de injeção, etc).
+Edite o arquivo $PLANO_ARQUIVO utilizando ESTRITAMENTE o seguinte formato (escreva direto no arquivo usando formato Markdown limpo):
+
+# $NOME_PLANO
+
+**Objetivo:**
+<Objetivo direto e claro da demanda>
+
+**Contexto Detectado:**
+- Área/Módulo afetado:
+- Framework/Padrões identificados:
+- Componentes similares encontrados no projeto:
+
+**Arquivos Provavelmente Afetados:**
+[NOVO] caminho/completo/para/novo/arquivo.ts
+[ALTERAÇÃO] caminho/completo/para/arquivo/existente.ts
+
+**Checklist:**
+[ ] TASK-001: <Ação técnica direta sobre o código 1>
+[ ] TASK-002: <Ação técnica direta sobre o código 2>
+
+**Critério de Aceite:**
+[ ] <Condição de aceite técnica 1>
+[ ] <Condição de aceite técnica 2>
+
+**Riscos:**
+- <Quais as chances de quebra de contrato ou dependências?>
+"
+
+    # Gera o plano de forma autônoma sem prender o terminal do usuário em chat iterativo
     agent "$modelo" "${SKILLS[@]}" \
         --file "$PLANO_ARQUIVO" \
         --yes \
-        --message "Atue como Tech Lead. Demanda: $DEMANDA. Quebre o requisito em tarefas atômicas de checklist [ ]. Salve o resultado EDITANDO O ARQUIVO $PLANO_ARQUIVO (que já está no chat). Para cada TASK gerada, deixe claro no arquivo qual PLAN e ADR ela pertence para facilitar a Rastreabilidade Absoluta. NENHUM código fonte deve ser gerado ou alterado."
+        --message "$PLAN_PROMPT"
+
+    echo "✅ Plano gerado com sucesso em: $PLANO_ARQUIVO"
+
+    if [ "$OPEN_AIDER" -eq 1 ]; then
+        echo "🚀 Abrindo Aider para execução do plano..."
+        agent "$modelo" "${BASE_SKILLS[@]}" --read "$PLANO_ARQUIVO" --message "Vamos iniciar a execução do plano $NOME_PLANO. Leia as tarefas e me diga qual será o primeiro arquivo a alterarmos."
+    fi
 }
 
 # ==========================================
