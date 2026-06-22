@@ -40,17 +40,14 @@ standardize <caminho-da-tela> --audit
 # Passo 2: Opção 2 — Gerar plano de padronização (--plan)
 standardize <caminho-da-tela> --plan
 
-# Passo 3: Criar plano de ação estruturado
+# Passo 3: Orquestrar a Arquitetura da Solução (Gera spec, plan e tasks)
 plan "padronizar a tela <nome-da-tela>, remover duplicações, validar utils existentes e simplificar validações complexas" --feature <nome-da-tela>
 
-# Passo 4: Validar o plano gerado
-verify .ai/plans/PLAN-XXX.md
+# Passo 4: Executar a Feature Restrita
+dev <nome-da-tela>
 
-# Passo 5: Executar o plano
-dev .ai/plans/PLAN-XXX.md
-
-# Passo 6: Verificar a qualidade final (opcional)
-code-review <caminho-da-tela>
+# Passo 5: Auditoria Cruzada (Code Review 360)
+code-review <nome-da-tela>
 ```
 
 ---
@@ -60,14 +57,14 @@ code-review <caminho-da-tela>
 
 **Fluxo Completo:**
 ```bash
-# Passo 1: Criar plano com referência
-plan "criar nova tela <nome-da-nova-tela> baseada na tela <nome-da-tela-irma>, mantendo estrutura e adaptando filtros/models conforme documentação" --new-screen --ref <nome-da-tela-irma> [--doc <caminho-do-documento-de-requisitos>]
+# Passo 1: Criar toda a especificação da nova tela baseada na irmã
+plan "criar nova tela <nome-da-nova-tela> baseada na tela <nome-da-tela-irma>, mantendo estrutura e adaptando filtros/models conforme documentação" --feature <nome-da-nova-tela>
 
-# Passo 2: Validar o plano
-verify .ai/plans/PLAN-XXX.md
+# Passo 2: Executar rigorosamente as tarefas geradas
+dev <nome-da-nova-tela>
 
-# Passo 3: Executar o plano
-dev .ai/plans/PLAN-XXX.md
+# Passo 3: Auditar a qualidade cruzando Spec vs Código
+code-review <nome-da-nova-tela>
 ```
 
 ---
@@ -155,4 +152,7 @@ Não use mais esses comandos, eles foram substituídos por soluções melhores:
 
 ## 🛡️ Conclusão
 O fluxo diário oficial é sempre:
-1. `feature`/`discover` → 2. `plan` com as flags certas → 3. `verify` → 4. `dev` → 5. `code-review`
+1. `feature`/`discover` para entender.
+2. `plan "..." --feature X` para orquestrar o planejamento (spec, plan, tasks).
+3. `dev X` para o Aider construir e tickar o checklist de tarefas sozinho.
+4. `code-review X` para garantir que o Aider não alucinou no código final.

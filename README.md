@@ -99,15 +99,15 @@ Esta tabela serve como seu documento de consulta rápida para o dia a dia, orden
 | :--- | :--- |
 | `architect "<problema>"` | **[Mudança Estrutural]** Ex: `architect "Migrar Context API para Redux"`. A IA não escreve código, apenas analisa trade-offs e gera arquivos oficiais `ADR-001.md`. |
 | `design "<demanda>"` | **[Mudança Tática]** Ex: `design "Tela de login"`. Desenha a estrutura de componentes, eventos e fluxos. |
-| `plan "<demanda>" [--feature <nome-feature>] [--new-screen] [--ref <tela-irma>] [--area <area>] [--doc <caminho-doc>] [--open] [--model <modelo>]` | **[Tech Lead]** Pega uma demanda e fatia o trabalho em um checklist executável numerado (ex: `.ai/plans/PLAN-001.md`).<br>- **`--feature <nome>`**: Injetar o contexto da feature como referência.<br>- **`--new-screen --ref <tela-irma>`**: Criar nova tela usando uma tela existente como padrão.<br>- **`--new-screen --area <area>`**: Criar nova tela usando referências de uma área específica.<br>- **`--doc <caminho>`**: Injetar um documento de requisitos como contexto adicional.<br>- **Regra crítica**: Não use `plan` sozinho para descobrir contexto. Sem flags de contexto, ele atua em modo global (planejamento abstrato). |
-| `verify <caminho_do_plano>` | **[Auditoria Determinística]** Valida o plano: verifica se todos os arquivos listados como [REFERENCIA] ou [EDITAR] existem no disco, adiciona uma "Certificação de Auditoria" no plano (APROVADO/REPROVADO). |
+| `plan "<demanda>" --feature <nome-feature> [--model <modelo>]` | **[Orquestrador SDD]** Recebe uma demanda de negócio e orquestra 3 fases sequenciais de IA: cria Especificação (spec.md), projeta Arquitetura (plan.md) e quebra em checklist rigoroso (tasks.md), agrupando tudo em `.ai/features/<feature>/`. |
+| `verify <caminho_do_plano>` | **[Auditoria Determinística]** Valida arquivos locais (Pode ser usado internamente no pipeline). |
 | `discover <nome> [--tree] [--deep]` | **[Raio-X do Componente]** Mostra detalhes do componente.<br>- **`--deep`**: Inclui o conteúdo completo do arquivo no output. |
 
 ### 4. 🔨 Execução e Qualidade (Desenvolvimento Real)
 | Comando | Descrição Completa e Casos de Uso |
 | :--- | :--- |
 | `agent [modelo]` | **[Codificação Livre]** Inicia uma sessão iterativa do Aider. Você adiciona arquivos com `/add` e pede para ele criar código, componentes e lógicas livremente. Usa o repo-map para não ficar cego. |
-| `dev <plano.md>` | **[Codificação Guiada]** A IA atua de forma disciplinada. Ela foca estritamente nas tasks do plano lendo as regras extraídas pelo `draft-rules`. |
+| `dev <nome-feature>` | **[Codificação Guiada]** A IA atua de forma disciplinada lendo as especificações e o plano gerado, focando estritamente em concluir o checklist `tasks.md` da feature especificada. |
 | `standardize <alvo>` | **[Padronizador]** Força o código a convergir ao padrão da empresa. |
 | `debug [modelo]` | **[Investigação de Bug]** Cruza rastros de erro de stacktrace com a base de código e aponta o defeito raiz. |
 | `code-review <arquivo>` | **[Tribunal do Código]** Audita qualidade, segurança e arquitetura gerando um laudo detalhado com SCORE (0-100). |
