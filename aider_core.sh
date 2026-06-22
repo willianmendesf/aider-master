@@ -103,7 +103,7 @@ agent() {
 
     # --- INJEÇÃO DE REGRAS DE PROJETO ---
     # Injeta a Constituição e Regras se existirem
-    [ -f ".ai/constitution.md" ] && EXTRA_FLAGS+=(--read ".ai/constitution.md")
+    [ -f ".ai/rules/constitution.md" ] && EXTRA_FLAGS+=(--read ".ai/rules/constitution.md")
     [ -f ".ai/rules/project-rules.md" ] && EXTRA_FLAGS+=(--read ".ai/rules/project-rules.md")
     [ -f ".ai/rules/architecture.md" ] && EXTRA_FLAGS+=(--read ".ai/rules/architecture.md")
     [ -f ".ai/rules/coding.md" ] && EXTRA_FLAGS+=(--read ".ai/rules/coding.md")
@@ -188,51 +188,25 @@ design() {
     agent "$modelo" "${SKILLS[@]}" --message "Demanda Tática: $DEMANDA. Use a skill System Design para apresentar uma proposta estrutural sem gerar código e sem gerar ADR." "$@"
 }
 
-# Comando para Fatiamento de Tarefas (Gera Plano Rastreável)
+# Comando para Especificação, Planejamento e Tarefas (Orquestrador SDD)
 plan() {
     if [ -z "$1" ] || [[ "$1" == --* ]]; then
-        echo "❌ ERRO: Uso: plan \"Sua demanda descritiva\" [--feature <nome-feature>] [--new-screen] [--ref <tela-irma>] [--area <area>] [--doc <caminho-doc>] [--open] [--model <modelo>]"
-        echo "Exemplos:"
-        echo "  plan \"padronizar a tela segunda-via-de-boleto\" --feature segunda-via-de-boleto"
-        echo "  plan \"criar nova tela segunda-via-boleto\" --new-screen --ref segunda-via-de-boleto --doc docs/segunda-via.md"
+        echo "❌ ERRO: Uso: plan \"Sua demanda descritiva\" --feature <nome-feature> [--model <modelo>]"
+        echo "Exemplo:"
+        echo "  plan \"criar nova modal de pagamento\" --feature modal-pagamento"
         return 1
     fi
     local DEMANDA="$1"
     shift
 
-    local OPEN_AIDER=0
     local TARGET_FEATURE=""
-    local TARGET_REF=""
-    local TARGET_AREA=""
-    local TARGET_DOC=""
-    local IS_NEW_SCREEN=0
-    
     local modelo="default"
+
     while [[ "$#" -gt 0 ]]; do
         case $1 in
-            --open) OPEN_AIDER=1 ;;
             --feature) 
                 if [ -n "$2" ] && [[ "$2" != --* ]]; then
                     TARGET_FEATURE="$2"
-                    shift
-                fi
-                ;;
-            --new-screen) IS_NEW_SCREEN=1 ;;
-            --ref) 
-                if [ -n "$2" ] && [[ "$2" != --* ]]; then
-                    TARGET_REF="$2"
-                    shift
-                fi
-                ;;
-            --area) 
-                if [ -n "$2" ] && [[ "$2" != --* ]]; then
-                    TARGET_AREA="$2"
-                    shift
-                fi
-                ;;
-            --doc) 
-                if [ -n "$2" ] && [[ "$2" != --* ]]; then
-                    TARGET_DOC="$2"
                     shift
                 fi
                 ;;
@@ -247,112 +221,110 @@ plan() {
                 ;;
             *)
                 echo "❌ Argumento desconhecido no plan: $1"
-                echo "Use: --feature, --new-screen, --ref, --area, --doc, --open ou --model"
+                echo "Use: --feature ou --model"
                 return 1
                 ;;
         esac
         shift
     done
 
+    if [ -z "$TARGET_FEATURE" ]; then
+        echo "❌ ERRO: plan requer o nome da feature para organizar os arquivos."
+        echo "Use: --feature <nome>"
+        return 1
+    fi
+
+    local FEATURE_DIR=".ai/features/$TARGET_FEATURE"
+    mkdir -p "$FEATURE_DIR"
+
+    # Contexto Inicial (Reverse Engineering + Conhecimento Legado)
     local SKILLS=(
         "${BASE_SKILLS[@]}"
-        --read "$AIDER_GLOBAL_DIR/skills/planner.md"
     )
 
-    if [ -z "$TARGET_FEATURE" ] && [ -z "$TARGET_REF" ] && [ -z "$TARGET_AREA" ]; then
-        if [ "$IS_NEW_SCREEN" -eq 0 ]; then
-            echo "❌ ERRO: plan precisa de contexto para alteração em tela existente."
-            echo "Use: --feature <nome> ou --ref <caminho-da-tela>"
-            return 1
-        fi
-    fi
+    echo "🔗 Montando contexto de engenharia reversa para a feature: $TARGET_FEATURE..."
+    mkdir -p .ai/cache
+    _aider_python "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$TARGET_FEATURE" > .ai/cache/plan_context.md
+    SKILLS+=(--read ".ai/cache/plan_context.md")
 
-    if [ -n "$TARGET_FEATURE" ]; then
-        echo "🔗 Montando contexto para a feature: $TARGET_FEATURE..."
-        _aider_python "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$TARGET_FEATURE" > .ai/cache/plan_context.md
-        SKILLS+=(--read ".ai/cache/plan_context.md")
-    elif [ "$IS_NEW_SCREEN" -eq 1 ] && [ -n "$TARGET_REF" ]; then
-        echo "🔗 Montando contexto de referência para a tela: $TARGET_REF..."
-        _aider_python "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$TARGET_REF" > .ai/cache/plan_context.md
-        SKILLS+=(--read ".ai/cache/plan_context.md")
-    elif [ "$IS_NEW_SCREEN" -eq 1 ] && [ -n "$TARGET_AREA" ]; then
-        echo "🔗 Buscando referências na área: $TARGET_AREA..."
-        mkdir -p .ai/cache
-        grep -i "/$TARGET_AREA/" .ai/knowledge/entities.json > .ai/cache/plan_context.md || echo "Nenhuma entidade encontrada para a área $TARGET_AREA" > .ai/cache/plan_context.md
-        SKILLS+=(--read ".ai/cache/plan_context.md")
-    else
-        echo "🌐 Modo de Planejamento Global Ativo (isolado do contexto tático). Pode gerar BLOQUEIO se faltar contexto."
-    fi
+    # Passo 1: Gerar spec.md
+    echo "========================================================"
+    echo "📄 PASSO 1/3: GERANDO ESPECIFICAÇÃO (spec.md)"
+    echo "========================================================"
+    local SPEC_FILE="$FEATURE_DIR/spec.md"
+    local SPEC_PROMPT
+    SPEC_PROMPT="Atue como Analista de Requisitos. Demanda: $DEMANDA.
+Utilize OBRIGATORIAMENTE o template em $AIDER_GLOBAL_DIR/templates/sdd/spec-template.md.
+NUNCA gere código. Foque no problema de negócio, requisitos funcionais e não funcionais.
+Use marcadores [NEEDS CLARIFICATION] se algo estiver ambíguo.
+Escreva a especificação no arquivo: $SPEC_FILE"
 
-    if [ -n "$TARGET_DOC" ]; then
-        if [ -f "$TARGET_DOC" ]; then
-            echo "📄 Injetando documento de referência: $TARGET_DOC"
-            SKILLS+=(--read "$TARGET_DOC")
-        else
-            echo "⚠️ Aviso: Documento $TARGET_DOC não encontrado. Ignorando."
-        fi
-    fi
-
-    echo "🗺️ Atuando como Tech Lead para fatiar o Plano de Ação..."
-    echo "📝 Demanda: $DEMANDA"
-    
-    mkdir -p .ai/plans
-    
-    local NOME_PLANO
-    NOME_PLANO="$(_next_plan_file)"
-    local TMP_PLANO=".aider-plan-${NOME_PLANO}.md"
-    local PLANO_ARQUIVO=".ai/plans/${NOME_PLANO}.md"
-
-    # Preenche o esqueleto inicial
-    cat > "$TMP_PLANO" <<EOF
-# $NOME_PLANO
-
-## 1. Conhecimento e Evidências
-<!-- Preencha aqui as evidências encontradas -->
-
-## 6. Plano de Execução
-<!-- Preencha aqui as tarefas -->
-EOF
-
-    local PLAN_PROMPT
-    PLAN_PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/skills/prompts/plan.md")"
-    PLAN_PROMPT="${PLAN_PROMPT//\{\{DEMANDA\}\}/$DEMANDA}"
-    PLAN_PROMPT="${PLAN_PROMPT//\{\{PLANO_ARQUIVO\}\}/$TMP_PLANO}"
-    PLAN_PROMPT="${PLAN_PROMPT//\{\{NOME_PLANO\}\}/$NOME_PLANO}"
-
-    # Gera o plano de forma autônoma sem prender o terminal do usuário em chat iterativo
     agent "$modelo" "${SKILLS[@]}" \
-        --file "$TMP_PLANO" \
+        --read "$AIDER_GLOBAL_DIR/templates/sdd/spec-template.md" \
+        --file "$SPEC_FILE" \
+        --yes \
+        --message "$SPEC_PROMPT"
+
+    if [ ! -s "$SPEC_FILE" ]; then
+        echo "❌ Falha: spec.md não foi gerado ou está vazio."
+        return 1
+    fi
+    echo "✅ spec.md gerado com sucesso!"
+
+    # Passo 2: Gerar plan.md
+    echo "========================================================"
+    echo "🏗️ PASSO 2/3: GERANDO PLANO TÉCNICO (plan.md)"
+    echo "========================================================"
+    local PLAN_FILE="$FEATURE_DIR/plan.md"
+    local PLAN_PROMPT
+    PLAN_PROMPT="Atue como Arquiteto de Software.
+Leia rigorosamente a especificação em $SPEC_FILE.
+Utilize OBRIGATORIAMENTE o template em $AIDER_GLOBAL_DIR/templates/sdd/plan-template.md.
+Proponha a arquitetura, modelos de dados e contratos de APIs para resolver o problema da especificação.
+Mantenha consistência com as regras do projeto e constituição.
+Escreva o plano técnico no arquivo: $PLAN_FILE"
+
+    agent "$modelo" "${SKILLS[@]}" \
+        --read "$AIDER_GLOBAL_DIR/templates/sdd/plan-template.md" \
+        --read "$SPEC_FILE" \
+        --file "$PLAN_FILE" \
         --yes \
         --message "$PLAN_PROMPT"
 
-    # Validação de Infraestrutura
-    if grep -q "<!-- Preencha aqui" "$TMP_PLANO"; then
-        echo "❌ ERRO: Plano não foi preenchido. O modelo retornou o esqueleto vazio."
-        rm -f "$TMP_PLANO"
+    if [ ! -s "$PLAN_FILE" ]; then
+        echo "❌ Falha: plan.md não foi gerado ou está vazio."
         return 1
     fi
+    echo "✅ plan.md gerado com sucesso!"
 
-    if [ -s "$TMP_PLANO" ]; then
-        mv "$TMP_PLANO" "$PLANO_ARQUIVO"
-    else
-        echo "❌ ERRO: O plano temporário gerado está vazio. O modelo falhou em formatar o bloco de texto."
+    # Passo 3: Gerar tasks.md
+    echo "========================================================"
+    echo "📝 PASSO 3/3: GERANDO CHECKLIST DE TAREFAS (tasks.md)"
+    echo "========================================================"
+    local TASKS_FILE="$FEATURE_DIR/tasks.md"
+    local TASKS_PROMPT
+    TASKS_PROMPT="Atue como Tech Lead.
+Leia a especificação ($SPEC_FILE) e o plano técnico ($PLAN_FILE).
+Utilize OBRIGATORIAMENTE o template em $AIDER_GLOBAL_DIR/templates/sdd/tasks-template.md.
+Crie um checklist sequencial rigoroso que implemente o plano técnico, passo a passo, usando marcações de [ ] e incluindo as dependências necessárias.
+Escreva as tarefas no arquivo: $TASKS_FILE"
 
-        rm -f "$PLANO_ARQUIVO"
+    agent "$modelo" "${SKILLS[@]}" \
+        --read "$AIDER_GLOBAL_DIR/templates/sdd/tasks-template.md" \
+        --read "$SPEC_FILE" \
+        --read "$PLAN_FILE" \
+        --file "$TASKS_FILE" \
+        --yes \
+        --message "$TASKS_PROMPT"
+
+    if [ ! -s "$TASKS_FILE" ]; then
+        echo "❌ Falha: tasks.md não foi gerado ou está vazio."
         return 1
     fi
+    echo "✅ tasks.md gerado com sucesso!"
 
-    if ! grep -q "## 1. Conhecimento e Evidências" "$PLANO_ARQUIVO"; then
-        echo "❌ ERRO: O plano não possui a estrutura mínima esperada (Possível alucinação do LLM)."
-        return 1
-    fi
-
-    echo "✅ Plano gerado com sucesso em: $PLANO_ARQUIVO"
-
-    if [ "$OPEN_AIDER" -eq 1 ]; then
-        echo "🚀 Abrindo Aider para verificação e execução do plano..."
-        agent "$modelo" "${BASE_SKILLS[@]}" --read "$PLANO_ARQUIVO" --message "O plano $NOME_PLANO foi gerado. Antes de codificar, valide as evidências (VERIFY)."
-    fi
+    echo "🎯 Planejamento completo! Os artefatos estão em $FEATURE_DIR/"
+    echo "Próximo passo recomendado: auditar os artefatos e então usar 'dev $TARGET_FEATURE'."
 }
 
 # Comando de Auditoria (VERIFY)
@@ -425,13 +397,13 @@ verify() {
 
 # Comando para Execução Restrita (Codificação Pura)
 dev() {
-    # Uso: dev <caminho_do_plano> [--model <id>]
+    # Uso: dev <nome-da-feature> [--model <id>]
     if [ -z "$1" ] || [[ "$1" == --* ]]; then
-        echo "Uso: dev <Caminho do Plano .ai/plans/PLAN-XXX.md> [--model <modelo>]"
-        echo "Exemplo: dev .ai/plans/PLAN-001.md"
+        echo "Uso: dev <nome-da-feature> [--model <modelo>]"
+        echo "Exemplo: dev modal-pagamento"
         return 1
     fi
-    local PLANO="$1"
+    local TARGET_FEATURE="$1"
     shift
 
     local modelo="default"
@@ -440,72 +412,33 @@ dev() {
         shift 2
     fi
 
-    # Tenta resolver o plano: primeiro como caminho absoluto/relativo ao CWD,
-    # depois a partir da raiz do repositório Git (suporte a monorepo/subpastas)
-    if [ ! -f "$PLANO" ]; then
-        local GIT_ROOT
-        GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
-        if [ -n "$GIT_ROOT" ] && [ -f "$GIT_ROOT/$PLANO" ]; then
-            PLANO="$GIT_ROOT/$PLANO"
-        else
-            echo "❌ ERRO: O plano '$PLANO' não foi encontrado."
-            echo "   Procurei em: $(pwd)/$PLANO"
-            [ -n "$GIT_ROOT" ] && echo "   E em: $GIT_ROOT/$PLANO"
-            echo "💡 Use o comando 'plan' para gerar as tarefas antes de codificar."
-            return 1
-        fi
+    local FEATURE_DIR=".ai/features/$TARGET_FEATURE"
+    local TASKS_FILE="$FEATURE_DIR/tasks.md"
+
+    if [ ! -f "$TASKS_FILE" ]; then
+        echo "❌ ERRO: O arquivo de tarefas '$TASKS_FILE' não foi encontrado."
+        echo "💡 Use o comando 'plan' para gerar o planejamento da feature antes de codificar."
+        return 1
     fi
 
     local SKILLS=(
         "${BASE_SKILLS[@]}"
         --read "$AIDER_GLOBAL_DIR/skills/dev-golden-path.md"
         --read "$AIDER_GLOBAL_DIR/skills/angular-patterns.md"
+        --read "$FEATURE_DIR/spec.md"
+        --read "$FEATURE_DIR/plan.md"
     )
 
-    local ARQUIVOS_REFERENCIA=$(sed -n 's/^[[:space:]]*[-*]*[[:space:]]*\[REFERENCIA\][[:space:]]*//p' "$PLANO")
-    local ARQUIVOS_EDITAR=$(sed -n 's/^[[:space:]]*[-*]*[[:space:]]*\[EDITAR\][[:space:]]*//p' "$PLANO")
-    local ARQUIVOS_NOVOS=$(sed -n 's/^[[:space:]]*[-*]*[[:space:]]*\[NOVO\][[:space:]]*//p' "$PLANO")
+    echo "🔨 Iniciando Motor de Execução Seguro baseado na feature: $TARGET_FEATURE..."
 
-    if [ -n "$ARQUIVOS_REFERENCIA" ]; then
-        while IFS= read -r arquivo; do
-            arquivo=$(echo "$arquivo" | tr -d '\r')
-            if [ -n "$arquivo" ] && [ -f "$arquivo" ]; then
-                SKILLS+=(--read "$arquivo")
-            fi
-        done <<< "$ARQUIVOS_REFERENCIA"
-    fi
+    local PROMPT="Atue como Desenvolvedor.
+Leia e execute rigorosamente as tarefas em $TASKS_FILE.
+Use as especificações (spec.md) e o planejamento arquitetural (plan.md) como guia absoluto.
+Obrigatório: Edite o arquivo $TASKS_FILE marcando [x] nas tarefas que você concluir.
+Não tome decisões arquiteturais sem antes analisar as regras de negócio.
+Escreva o código necessário."
 
-    if [ -n "$ARQUIVOS_EDITAR" ]; then
-        while IFS= read -r arquivo; do
-            arquivo=$(echo "$arquivo" | tr -d '\r')
-            if [ -n "$arquivo" ] && [ -f "$arquivo" ]; then
-                SKILLS+=(--file "$arquivo")
-            fi
-        done <<< "$ARQUIVOS_EDITAR"
-    fi
-
-    if [ -n "$ARQUIVOS_NOVOS" ]; then
-        while IFS= read -r arquivo; do
-            arquivo=$(echo "$arquivo" | tr -d '\r')
-            if [ -n "$arquivo" ] && [[ "$arquivo" != *"<"* ]] && [[ "$arquivo" != *"("* ]]; then
-                SKILLS+=(--file "$arquivo")
-            fi
-        done <<< "$ARQUIVOS_NOVOS"
-    fi
-
-    echo "🔨 Iniciando Motor de Execução Seguro baseado em: $PLANO..."
-    
-    # Checagem primária em shell antes de chamar a IA
-    if ! grep -qE "VERIFY:\*\* APROVADO|VERIFY: APROVADO" "$PLANO"; then
-        echo "❌ ERRO: O plano '$PLANO' não possui a certificação 'VERIFY: APROVADO'."
-        echo "   Execute o comando 'verify $PLANO' para auditar o plano antes do dev."
-        return 1
-    fi
-
-    local PROMPT
-    PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/skills/prompts/dev.md")"
-
-    agent "$modelo" "${SKILLS[@]}" --file "$PLANO" --message "$PROMPT" "$@"
+    agent "$modelo" "${SKILLS[@]}" --file "$TASKS_FILE" --message "$PROMPT" "$@"
 }
 
 # Modo Ask
@@ -542,17 +475,15 @@ debug() {
     agent "$modelo" "${SKILLS[@]}" --message "Atue como Investigador Sênior (Root Cause Analysis). Analise o erro ou problema relatado pelo usuário. Localize a raiz do problema cruzando com o contexto do projeto. NÃO sugira gambiarras, emita o relatório técnico e aponte o arquivo exato a ser corrigido." "$@"
 }
 
-# Comando para Tribunal de Código (Code Review)
-# Uso: code-review <arquivo_ou_diretorio> [--model <id>]
+# Comando para Tribunal de Código (Code Review Cross-Check SDD)
+# Uso: code-review <nome-da-feature> [--model <id>]
 code-review() {
     if [ -z "$1" ] || [[ "$1" == --* ]]; then
-        echo "❌ ERRO: Uso: code-review <arquivo_ou_diretorio> [--model <modelo>]"
-        echo "Exemplos:"
-        echo "  code-review src/app/pages/logged/appointments/"
-        echo "  code-review src/app/app.module.ts"
+        echo "❌ ERRO: Uso: code-review <nome-da-feature> [--model <modelo>]"
+        echo "Exemplo: code-review modal-pagamento"
         return 1
     fi
-    local ALVO="$1"
+    local TARGET_FEATURE="$1"
     shift
 
     local modelo="default"
@@ -561,48 +492,20 @@ code-review() {
         shift 2
     fi
 
-    # --- Validação do alvo ---
-    if [ ! -e "$ALVO" ]; then
-        echo "❌ ERRO: O alvo '$ALVO' não existe como arquivo ou diretório."
+    local FEATURE_DIR=".ai/features/$TARGET_FEATURE"
+    if [ ! -d "$FEATURE_DIR" ]; then
+        echo "❌ ERRO: A feature '$TARGET_FEATURE' não foi encontrada em $FEATURE_DIR."
         return 1
     fi
 
-    # --- Montagem de evidência ---
-    local EVIDENCE_ARGS=()
-
-    if [ -f "$ALVO" ]; then
-        # Arquivo único: passa diretamente como --file
-        echo "📄 Arquivo individual selecionado para Code Review: $ALVO"
-        EVIDENCE_ARGS+=(--file "$ALVO")
-    elif [ -d "$ALVO" ]; then
-        # Diretório: gera bundle repomix com o conteúdo para garantir evidência concreta
-        _init_ai_workspace
-        local BUNDLE_FILE=".ai/cache/code-review-bundle.txt"
-        echo "📂 Diretório detectado. Gerando bundle de evidência: $BUNDLE_FILE"
-        if command -v repomix &>/dev/null; then
-            repomix "$ALVO" --output "$BUNDLE_FILE" --quiet 2>/dev/null \
-                || repomix "$ALVO" --output "$BUNDLE_FILE" 2>/dev/null
-        else
-            # Fallback: concatenar arquivos de código relevantes
-            find "$ALVO" -type f \(
-                -name "*.ts" -o -name "*.js" -o -name "*.java" \
-                -o -name "*.py" -o -name "*.cs" -o -name "*.kt"
-            \) -not -path "*/node_modules/*" -not -path "*/target/*" \
-               -not -path "*/dist/*" -not -path "*/.git/*" \
-            | head -n 60 \
-            | xargs -I{} sh -c 'echo "\n=== {} ==="; cat "{}"' \
-            > "$BUNDLE_FILE" 2>/dev/null
-        fi
-
-        if [ ! -s "$BUNDLE_FILE" ]; then
-            echo "❌ ERRO: Não foi possível gerar evidência do diretório '$ALVO'. Verifique se há arquivos de código."
-            return 1
-        fi
-
-        local LINE_COUNT
-        LINE_COUNT=$(wc -l < "$BUNDLE_FILE")
-        echo "✅ Bundle gerado com $LINE_COUNT linhas de evidência."
-        EVIDENCE_ARGS+=(--read "$BUNDLE_FILE")
+    # Monta bundle do repositório para o code review ver o código final gerado
+    local BUNDLE_FILE=".ai/cache/code-review-bundle.txt"
+    echo "📂 Gerando bundle de evidência com o estado atual do repositório..."
+    if command -v repomix &>/dev/null; then
+        repomix --output "$BUNDLE_FILE" --quiet 2>/dev/null || repomix --output "$BUNDLE_FILE" 2>/dev/null
+    else
+        echo "⚠️ repomix não encontrado. Evidências podem ficar limitadas ao que a IA conhece no cache."
+        touch "$BUNDLE_FILE"
     fi
 
     local SKILLS=(
@@ -612,70 +515,57 @@ code-review() {
         --read "$AIDER_GLOBAL_DIR/skills/clean-architecture.md"
         --read "$AIDER_GLOBAL_DIR/skills/architecture-review.md"
         --read "$AIDER_GLOBAL_DIR/skills/security-audit.md"
+        --read "$FEATURE_DIR/spec.md"
+        --read "$FEATURE_DIR/plan.md"
+        --read "$FEATURE_DIR/tasks.md"
+        --read "$BUNDLE_FILE"
     )
 
-    # O repo-map nativo fornece o contexto de forma automática.
-    if [ -s ".ai/decisions/ARCHITECTURE-BASELINE.md" ]; then
-        SKILLS+=(--read ".ai/decisions/ARCHITECTURE-BASELINE.md")
-    fi
-
     # Regras do projeto corrente
-    [ -f ".ai/constitution.md" ] && SKILLS+=(--read ".ai/constitution.md")
+    [ -f ".ai/rules/constitution.md" ] && SKILLS+=(--read ".ai/rules/constitution.md")
     [ -f ".ai/rules/project-rules.md" ] && SKILLS+=(--read ".ai/rules/project-rules.md")
     [ -f ".ai/rules/coding.md" ] && SKILLS+=(--read ".ai/rules/coding.md")
     [ -f ".ai/rules/architecture.md" ] && SKILLS+=(--read ".ai/rules/architecture.md")
-    [ -f ".ai/rules/testing.md" ] && SKILLS+=(--read ".ai/rules/testing.md")
 
-    echo "⚖️ Iniciando Tribunal de Código (Code Review) em: $ALVO..."
+    echo "⚖️ Iniciando Tribunal de Código (Code Review Cruzado) da feature: $TARGET_FEATURE..."
     
-    local NOME_REVIEW
-    NOME_REVIEW="$(_next_review_file)"
-    local TMP_REVIEW=".aider-review-${NOME_REVIEW}.md"
-    local REVIEW_ARQUIVO=".ai/reviews/${NOME_REVIEW}.md"
+    local REVIEW_ARQUIVO="$FEATURE_DIR/review.md"
 
-    cat > "$TMP_REVIEW" <<EOF
-# $NOME_REVIEW
+    cat > "$REVIEW_ARQUIVO" <<EOF
+# Auditoria de Feature: $TARGET_FEATURE
 
 ## Veredito
 <!-- APROVADO | APROVADO COM RESSALVAS | REPROVADO -->
 
-## Score
-<!-- 0-100 -->
+## Avaliação Cruzada (Spec vs Plan vs Code)
+<!-- O código atende a todos os requisitos do spec.md? -->
+<!-- O código respeita a arquitetura do plan.md? -->
+<!-- Foram completadas todas as atividades do tasks.md? -->
 
-## Bloqueadores
-<!-- Liste bloqueadores reais com arquivo e evidência -->
+## Implementações Fora do Escopo
+<!-- O modelo codificou algo que não estava previsto? -->
 
-## Divergências por Arquivo
-<!-- Liste as divergências -->
-
-## Refatorações Recomendadas
-<!-- Liste ações objetivas -->
+## Bloqueadores e Refatorações Recomendadas
+<!-- Ações objetivas -->
 EOF
 
-    local PROMPT
-    PROMPT="$(_load_prompt "$AIDER_GLOBAL_DIR/skills/prompts/code-review.md")"
-    PROMPT="${PROMPT//\{\{ALVO\}\}/$ALVO}"
-    PROMPT="${PROMPT}
+    local PROMPT="Atue como Auditor de Qualidade Sênior.
+Faça um cruzamento estrito e triplo entre os arquivos fornecidos: spec.md, plan.md, tasks.md vs o código final contido no bundle.
+Identifique:
+1) O código fez exatamente o que a Especificação (spec.md) pediu?
+2) Respeitou a arquitetura (plan.md)?
+3) Fez código fora de escopo (coisas que não foram pedidas)?
+Preencha a auditoria OBRIGATORIAMENTE no arquivo $REVIEW_ARQUIVO."
 
-Edite OBRIGATORIAMENTE o arquivo $TMP_REVIEW preenchendo o esqueleto."
-
-    agent "$modelo" "${SKILLS[@]}" "${EVIDENCE_ARGS[@]}" \
-        --file "$TMP_REVIEW" \
+    agent "$modelo" "${SKILLS[@]}" \
+        --file "$REVIEW_ARQUIVO" \
         --yes \
         --message "$PROMPT" "$@"
 
-    if grep -q "<!-- APROVADO | APROVADO COM RESSALVAS | REPROVADO -->" "$TMP_REVIEW"; then
-        echo "❌ ERRO: O review não foi preenchido. O modelo retornou o esqueleto vazio."
-        rm -f "$TMP_REVIEW"
-        return 1
-    fi
-
-    if [ -s "$TMP_REVIEW" ]; then
-        mv "$TMP_REVIEW" "$REVIEW_ARQUIVO"
-        echo "✅ Review salvo com sucesso em: $REVIEW_ARQUIVO"
+    if [ -s "$REVIEW_ARQUIVO" ]; then
+        echo "✅ Review gerado com sucesso em: $REVIEW_ARQUIVO"
     else
-        echo "❌ Falha: O arquivo temporário de review ficou vazio."
-        rm -f "$TMP_REVIEW"
+        echo "❌ Falha: O arquivo de review ficou vazio."
         return 1
     fi
 }
