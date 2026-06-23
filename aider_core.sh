@@ -127,6 +127,8 @@ agent() {
                   --llm-history-file ".aider/.aider.llm.history" \
                   --aiderignore "$AIDER_GLOBAL_DIR/ignores/.aiignore" \
                   --read ".aider/.aider.root.md" \
+                  --subtree-only \
+                  --map-tokens 1024 \
                   "${EXTRA_FLAGS[@]}" \
                   "$@"
 }
@@ -244,8 +246,8 @@ plan() {
 
     echo "🔗 Montando contexto de engenharia reversa para a feature: $TARGET_FEATURE..."
     mkdir -p .ai/cache
-    _aider_python "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$TARGET_FEATURE" > .ai/cache/plan_context.md
-    SKILLS+=(--read ".ai/cache/plan_context.md")
+    _aider_python "$AIDER_GLOBAL_DIR/scripts/query.py" feature "$TARGET_FEATURE" > .ai/cache/feature-context.md
+    SKILLS+=(--read ".ai/cache/feature-context.md")
 
     # Passo 1: Gerar spec.md
     echo "========================================================"
@@ -257,6 +259,7 @@ plan() {
 Utilize OBRIGATORIAMENTE o template em $AIDER_GLOBAL_DIR/templates/sdd/spec-template.md.
 NUNCA gere código. Foque no problema de negócio, requisitos funcionais e não funcionais.
 Use marcadores [NEEDS CLARIFICATION] se algo estiver ambíguo.
+Tudo que não estiver evidenciado no feature-context.md deve ser marcado como [NEEDS DISCOVERY].
 Escreva a especificação no arquivo: $SPEC_FILE"
 
     agent "$modelo" "${SKILLS[@]}" \
@@ -276,12 +279,14 @@ Escreva a especificação no arquivo: $SPEC_FILE"
     echo "🏗️ PASSO 2/3: GERANDO PLANO TÉCNICO (plan.md)"
     echo "========================================================"
     local PLAN_FILE="$FEATURE_DIR/plan.md"
-    local PLAN_PROMPT
     PLAN_PROMPT="Atue como Arquiteto de Software.
 Leia rigorosamente a especificação em $SPEC_FILE.
 Utilize OBRIGATORIAMENTE o template em $AIDER_GLOBAL_DIR/templates/sdd/plan-template.md.
 Proponha a arquitetura, modelos de dados e contratos de APIs para resolver o problema da especificação.
 Mantenha consistência com as regras do projeto e constituição.
+PROIBIDO inventar stack, arquivos, endpoints, models ou componentes.
+Use SOMENTE feature-context.md, spec.md e arquivos reais.
+Se não houver evidência, escreva [NEEDS DISCOVERY].
 Escreva o plano técnico no arquivo: $PLAN_FILE"
 
     agent "$modelo" "${SKILLS[@]}" \
@@ -307,6 +312,7 @@ Escreva o plano técnico no arquivo: $PLAN_FILE"
 Leia a especificação ($SPEC_FILE) e o plano técnico ($PLAN_FILE).
 Utilize OBRIGATORIAMENTE o template em $AIDER_GLOBAL_DIR/templates/sdd/tasks-template.md.
 Crie um checklist sequencial rigoroso que implemente o plano técnico, passo a passo, usando marcações de [ ] e incluindo as dependências necessárias.
+Tudo que não estiver evidenciado no feature-context.md deve ser marcado como [NEEDS DISCOVERY] nas tarefas.
 Escreva as tarefas no arquivo: $TASKS_FILE"
 
     agent "$modelo" "${SKILLS[@]}" \
@@ -322,6 +328,17 @@ Escreva as tarefas no arquivo: $TASKS_FILE"
         return 1
     fi
     echo "✅ tasks.md gerado com sucesso!"
+
+    echo "========================================================"
+    echo "🔍 PASSO 4/4: VERIFICAÇÃO DE EVIDÊNCIAS (VALIDATOR)"
+    echo "========================================================"
+    _aider_python "$AIDER_GLOBAL_DIR/scripts/validator.py" "$SPEC_FILE" "$PLAN_FILE" "$TASKS_FILE"
+    local VAL_STATUS=$?
+    
+    if [ $VAL_STATUS -ne 0 ]; then
+        echo "❌ Plano bloqueado devido à falta de evidências factuais."
+        return 1
+    fi
 
     echo "🎯 Planejamento completo! Os artefatos estão em $FEATURE_DIR/"
     echo "Próximo passo recomendado: auditar os artefatos e então usar 'dev $TARGET_FEATURE'."
