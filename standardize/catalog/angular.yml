@@ -1,0 +1,10 @@
+name: angular
+detect:
+  files:
+    - angular.json
+  extensions:
+    - .ts
+    - .html
+    - .scss
+analyzer: angular_analyzer.py
+rules: angular_rules.yml

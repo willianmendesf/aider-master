@@ -1,157 +1,159 @@
-# 🤖 Aider Centralizado (Multi-Ambiente: Windows & Linux)
+# 🤖 Aider OS v2.0: Knowledge Extraction Pipeline & Motor de Governança
 
-Este repositório centraliza as configurações, chaves de API (BYOK), instruções de contexto (skills), inteligência (RAG) e atalhos customizados para o uso do Aider de forma idêntica no Windows e no Linux.
+O Aider OS evoluiu. Ele não é mais apenas um conjunto de prompts para o modelo de linguagem tentar entender o seu código lendo milhares de arquivos no escuro. 
 
----
+Aider OS v2.0 é um **Sistema Operacional de Governança de Código** que atua como um **Language Server + MCP (Model Context Protocol)**. Ele orquestra ferramentas maduras de mercado (Compodoc, OpenAPI, TypeDoc, LSP) para extrair o AST do seu projeto, construir um Banco de Conhecimento relacional nativo (Entidades e Grafo) e permitir que você e a IA naveguem na arquitetura em **milissegundos**, com custo zero de tokens e mitigação total de alucinações.
 
-## 🛠️ Requisitos Prévios
-
-Antes de começar, certifique-se de ter instalado em sua máquina:
-1. Python 3.10+
-2. Node.js & npm (Necessário para a ferramenta de contexto repomix)
-3. Git
+O problema não é "fazer a IA ler o código". O problema resolvido aqui é **"Como não precisar que a IA leia o código inteiro para achar uma tela e suas dependências"**.
 
 ---
 
-## 🚀 Instalação e Inicialização do Ambiente
+## 🛠️ Requisitos e Instalação
 
-Siga os passos abaixo de acordo com o seu sistema operacional para preparar a pasta e o ambiente virtual do Python.
-
-### 🐧 No Linux (Ubuntu/Debian/etc.)
-
-  # 1. Garanta que o Node.js/npm e ferramentas de compilação estão instalados
-  sudo apt update
-  sudo apt install nodejs npm build-essential python3-dev -y
-
-  # 2. Instale o Repomix globalmente para a função 'context' funcionar
-  sudo npm install -g repomix
-
-  # 3. Acesse a pasta do projeto, limpe e recrie o ambiente virtual (venv)
-  cd /dados/aider
-  rm -rf venv
-  python3 -m venv venv
-  source venv/bin/activate
-
-  # 4. Atualize o pip e instale as dependências do ecossistema/cérebro
-  pip install --upgrade pip
-  pip install aider-chat fastmcp chromadb sentence-transformers
-
-
-
-### No Windows (Via Git Bash)
-
-  # 1. Instale o Repomix globalmente (Abra o CMD ou PowerShell como Administrador)
-  npm install -g repomix
-
-  # 2. Abra o Git Bash e instale o gerenciador global pipx
-  python -m pip install pipx --upgrade
-  python -m pipx ensurepath
-
-  # 🚨 IMPORTANTE: Feche e abra o seu Git Bash agora para o PATH do Windows atualizar!
-
-  # 3. Instale o Aider e o ecossistema do cérebro de forma isolada e compatível
-  pipx install aider-chat --pip-args="--pre --upgrade-strategy=eager"
-  pipx inject aider-chat fastmcp chromadb sentence-transformers
-
-
-## 🔗 Vinculando os Atalhos ao Terminal (.bashrc)
-
-Para que os comandos customizados (ask, plan, study, context) fiquem disponíveis globalmente, adicione o bloco correspondente ao arquivo de configuração do seu terminal.
-
-### 🐧 Configuração no Linux (~/.bashrc)
-Abra o arquivo ~/.bashrc e adicione ao final:
-
-  # ==========================================
-  # AIDER - Carregar funções centralizadas
-  # ==========================================
-  if [ -f "/dados/aider/bash_linux_functions.sh" ]; then
-      source "/dados/aider/bash_linux_functions.sh"
-  fi
-
-### 🪟 Configuração no Windows (C:\Users\SEU_USUARIO\.bashrc)
-Abra o seu .bashrc de usuário no Windows e adicione ao final:
-
-  # ==========================================
-  # AIDER - Carregar funções centralizadas
-  # ==========================================
-  if [ -f "/c/dev/programs/aider/bash_win_functions.sh" ]; then
-      source "/c/dev/programs/aider/bash_win_functions.sh"
-  fi
-
-> 💡 Nota para o Windows: Se o Git Bash ignorar o .bashrc, certifique-se de ter um arquivo chamado ~/.bash_profile na sua pasta de usuário com a linha: [ -f ~/.bashrc ] && source ~/.bashrc.
-
----
-
-## 🧠 Usando a Memória do Projeto (RAG & MCP)
-
-Para economizar tokens, este ecossistema possui um sistema RAG nativo. Como o Aider atualmente não suporta o protocolo MCP de forma nativa, criamos um script CLI (`rag_cli.py`) que simula a "ferramenta MCP" direto no chat do Aider, utilizando busca inteligente com fallback full-text!
-
-### 1. Indexando o seu projeto (Construindo a Memória)
-Antes de consultar, você precisa "ensinar" o projeto ao sistema. Execute no seu terminal:
+A instalação do repositório requer: `python3.10+`, `repomix`, `aider-chat`.
+Para carregar os comandos globalmente, adicione ao seu `.bashrc` (Linux):
 ```bash
-# Indexar um projeto inteiro ou um arquivo consolidado (ex: bundle-output.txt)
-brain-index /[caminho-do-projeto] [nome-do-projeto]
+if [ -f "/dados/aider/bash_linux_functions.sh" ]; then
+    source "/dados/aider/bash_linux_functions.sh"
+fi
+```
+Ou adicione ao seu Git Bash / profile no Windows:
+```bash
+if [ -f "/dados/aider/bash_win_functions.sh" ]; then
+    source "/dados/aider/bash_win_functions.sh"
+fi
 ```
 
-### 2. Consultando o RAG por dentro do Aider
-Sempre que estiver no chat do Aider e precisar buscar o funcionamento de uma função, lógica antiga, ou entender a estrutura do projeto **sem gastar tokens lendo arquivos desnecessários**, use o comando `/run`:
+### Ferramentas Especializadas (Opcionais, mas altamente recomendadas)
+Para extrair o máximo do Pipeline de Conhecimento, instale as ferramentas compatíveis com a sua stack:
+- **Angular**: `@compodoc/compodoc`
+- **Java/Spring**: OpenAPI (`springdoc-openapi`)
+- **TypeScript**: `typedoc`
+
+---
+
+## 🧠 Arquitetura de Conhecimento (Como Funciona?)
+
+O coração do Aider OS reside na pasta `.ai/`.
 
 ```text
-# Para buscar por uma lógica, função, ou palavra-chave:
-/run python3 /dados/aider/rag/rag_cli.py search "como conectar no banco"
-
-# Para ver a estrutura de pastas e mapeamento do projeto:
-/run python3 /dados/aider/rag/rag_cli.py map
-```
-*(No Windows, substitua `python3` por `python` e você pode usar a variável `$AIDER_GLOBAL_DIR/rag/rag_cli.py` caso prefira o caminho absoluto).*
-
-> **💡 Dica:** O script é inteligente! Ele rastreia a pasta `.git` do diretório atual para inferir automaticamente em qual projeto do banco de RAG ele deve procurar.
-
-### 3. Usando com Editores Externos via MCP (Cursor, Windsurf, Claude Desktop)
-Se você usa IAs ou editores que possuem suporte ao protocolo MCP real, o servidor já está configurado. Basta apontar o software para o `mcp/code_rag_server.py` ou usar o nosso `mcp.json`. Exemplo de link simbólico para sistemas baseados no Claude:
-
-#### 🐧 No Linux
-```bash
-  mkdir -p ~/.config/aider
-  ln -sf /dados/aider/mcp/mcp.json ~/.config/aider/mcp.json
+.ai/
+├─ knowledge/
+│  ├─ entities.json (O catálogo universal de todas as telas, serviços, models, endpoints)
+│  └─ graph.json (O grafo de arestas: quem chama quem, quem depende de quem)
+├─ providers/ (Adaptadores Python para Compodoc, OpenAPI, TypeDoc)
+├─ tooling/catalog/ (Regras YAML de detecção de stack)
+└─ cache/ (Artefatos brutos extraídos pelas ferramentas)
 ```
 
-#### 🪟 No Windows (Git Bash)
-```bash
-  mkdir -p ~/.config/aider
-  ln -sf [seu-caminho-windows]/aider/mcp/mcp.json ~/.config/aider/mcp.json
-```
+O sistema não gera "enciclopédias Markdown" gigantes e inúteis. Ele gera **dados estruturados (JSON)** que os comandos de consulta consomem instantaneamente.
 
 ---
 
-## 📖 Como Usar os Comandos Customizados
+## 🔌 Model Context Protocol (MCP)
 
-Após recarregar o seu terminal (source ~/.bashrc), os seguintes comandos estarão prontos para uso em qualquer pasta de projeto:
+O Aider OS integra-se com o **MCP (Model Context Protocol)** para fornecer ferramentas nativas à IA:
+1. **filesystem**: Acesso seguro ao sistema de arquivos
+2. **code-rag**: Busca na memória indexada do projeto (`entities.json`) via as rotas `search_project_memory` e `get_project_map`.
 
-| Comando | Descrição |
+A configuração MCP está em `mcp/mcp.json`.
+
+---
+
+## 🗺️ Repo-Map Nativo do Aider
+
+O Aider OS agora usa o **repo-map nativo do Aider**, gerado automaticamente via Ctags/Tree-Sitter. Isso fornece contexto inteligente para a IA sem esforço manual.
+
+### Como usar no dia a dia:
+1. **Uso automático**: Quando você inicia o Aider (via `agent` ou diretamente), o repo-map é gerado e atualizado dinamicamente.
+2. **Ver o mapa na sessão**: `/map`
+3. **Atualizar o mapa na sessão**: `/map-refresh`
+4. **Ver o mapa no terminal (fora do Aider)**: `aider --show-repo-map`
+
+### Diferença entre repo-map e grafo local:
+- **repo-map**: Contexto de conversa para a IA ler a hierarquia dos arquivos em tempo real (dinâmico, via Tree-Sitter).
+- **Grafo local (where/impact/feature)**: Índice operacional absoluto para VOCÊ (determinístico, extraído por LSP/Compodoc, $0 de tokens).
+
+---
+
+## 🚀 Os Comandos do Aider OS (Fluxo Cronológico)
+
+Esta tabela serve como seu documento de consulta rápida para o dia a dia, ordenada do momento em que você clona o projeto até o review final do código.
+
+### 1. 🏗️ Setup Inicial e Regras (Quando entrar no projeto)
+| Comando | Descrição Completa e Casos de Uso |
 | :--- | :--- |
-| ask [modelo] | Abre o chat do Aider em modo pergunta (ask) com as suas habilidades (skills) já injetadas. |
-| plan [modelo] | Abre o Aider em modo Arquiteto (--architect), ideal para planejar refatorações complexas. |
-| study [modelo] | Abre o modo pergunta ignorando completamente o Git do projeto (--no-git). |
-| draft-rules | Roda o modo Extrator de Padrões. O Aider lerá a pasta atual, descobrirá os padrões de lint, bibliotecas e estrutura, e criará um `.project-rules.md` automático. |
-| context [arquivo.txt] | Roda o Repomix focado na pasta src/, gerando um relatório compactado do código (padrão: study-output.txt). |
-| brain-index [caminho] [nome] | Executa o indexador RAG para alimentar a base de conhecimento do cérebro da aplicação. |
+| `bootstrap [modelo]` | **[Pipeline de Extração]** Roda apenas uma vez ou quando o projeto sofrer mudanças drásticas na arquitetura. Detecta a sua stack, aciona o Provider correto, normaliza os dados e gera o `entities.json` e o `graph.json`. **Processamento local (custa 0 tokens).** |
+| `draft-rules [modelo] [--context-rows <numero>]` | **[Extrator de Padrões]** Analisa o código do projeto existente e extrai automaticamente as regras de projeto, estilo de código e arquitetura, gerando o arquivo imutável `.ai/rules/project-rules.md`. Por padrão lê 4000 linhas, mas você pode aumentar com `--context-rows` (ex: `--context-rows 12000`). |
 
-### 🤖 Loop de Autonomia (Auto-Correção)
-O Aider foi configurado para ser 100% autônomo nas validações do seu código:
-- **Auto-Rules:** Se houver um arquivo `.project-rules.md` na raiz do projeto, o Aider irá carregá-lo silenciosamente em todos os chats, respeitando todas as regras impostas nele.
-- **Auto-Linter/Teste:** Se você rodar o Aider em uma pasta que tenha um `package.json` contendo scripts de `"lint"` ou `"test"`, o Aider ligará a **Auto-Correção**. Sempre que ele escrever um arquivo, o próprio Aider rodará o linter no terminal e, se quebrar, ele reescreverá o código para consertar o erro sem que você precise pedir!
+### 2. ⚡ Consultas Rápidas (Investigando o código)
+| Comando | Descrição Completa e Casos de Uso |
+| :--- | :--- |
+| `where <nome>` | **[Onde Está?]** Retorna a localização exata (Arquivo e Linha) de forma limpa. Se houver múltiplos, exibe uma lista numerada. |
+| `discover <nome> [--tree]` | **[O Que É Isso?]** Raio-X do componente sem LLM. Inferência de Feature, lista de Models/Services que utiliza e um laudo de Saúde Arquitetural (risco de acoplamento). A flag `--tree` desenha a hierarquia ASCII. |
+| `impact <nome>` | **[O Que Quebra?]** Navega no Grafo e lista consumidores exatos. Avalia o Risco e emite uma **RECOMENDAÇÃO TÁTICA** (Pode alterar / Não altere) sugerindo o que deve ser testado em regressão. |
+| `feature <nome> [--open | --ai | --report]` | **[Contexto Cirúrgico Completo]**<br>- **Sem flags**: Mostra ponto de entrada, fluxo principal, services, models, componentes reutilizados e lista de todos os arquivos relevantes<br>- `--ai` ou `--report`: Gera relatório explicativo via IA<br>- `--open`: Abre o Aider com **todos os arquivos relevantes carregados** (incluindo reused_components e external_services) e automaticamente dispara um onboarding que analisa a feature e responde com objetivo, fluxo, APIs, models, arquivos importantes, pontos de extensão e riscos de alteração (sem escrever código) |
 
-### 💡 Exemplos Práticos:
+### 3. 🧠 Decisão e Planejamento (Pensando antes de codar)
+| Comando | Descrição Completa e Casos de Uso |
+| :--- | :--- |
+| `architect "<problema>"` | **[Mudança Estrutural]** Ex: `architect "Migrar Context API para Redux"`. A IA não escreve código, apenas analisa trade-offs e gera arquivos oficiais `ADR-001.md`. |
+| `design "<demanda>"` | **[Mudança Tática]** Ex: `design "Tela de login"`. Desenha a estrutura de componentes, eventos e fluxos. |
+| `plan "<demanda>" --feature <nome-feature> [--model <modelo>]` | **[Orquestrador SDD]** Recebe uma demanda de negócio e orquestra 3 fases sequenciais de IA: cria Especificação (spec.md), projeta Arquitetura (plan.md) e quebra em checklist rigoroso (tasks.md), agrupando tudo em `.ai/features/<feature>/`. |
+| `verify <caminho_do_plano>` | **[Auditoria Determinística]** Valida arquivos locais (Pode ser usado internamente no pipeline). |
+| `discover <nome> [--tree] [--deep]` | **[Raio-X do Componente]** Mostra detalhes do componente.<br>- **`--deep`**: Inclui o conteúdo completo do arquivo no output. |
 
-  # Iniciar um chat focado em tirar dúvidas de código usando o modelo padrão (o3-mini)
-  ask
+### 4. 🔨 Execução e Qualidade (Desenvolvimento Real)
+| Comando | Descrição Completa e Casos de Uso |
+| :--- | :--- |
+| `agent [modelo]` | **[Codificação Livre]** Inicia uma sessão iterativa do Aider. Você adiciona arquivos com `/add` e pede para ele criar código, componentes e lógicas livremente. Usa o repo-map para não ficar cego. |
+| `dev <nome-feature>` | **[Codificação Guiada]** A IA atua de forma disciplinada lendo as especificações e o plano gerado, focando estritamente em concluir o checklist `tasks.md` da feature especificada. |
+| `standardize <alvo>` | **[Padronizador]** Força o código a convergir ao padrão da empresa. |
+| `debug [modelo]` | **[Investigação de Bug]** Cruza rastros de erro de stacktrace com a base de código e aponta o defeito raiz. |
+| `code-review <arquivo>` | **[Tribunal do Código]** Audita qualidade, segurança e arquitetura gerando um laudo detalhado com SCORE (0-100). |
+| `review` | **[Revisão Operacional]** Revisão rápida de PR focada em limpeza, logs soltos e erros sintáticos fáceis. |
 
-  # Usar o modo arquiteto forçando outro modelo (ex: gpt-4o)
-  plan gpt-4o
+### 5. 🗣️ Modos de Dúvida e Estudo (Sem alterar código)
+| Comando | Descrição Completa e Casos de Uso |
+| :--- | :--- |
+| `ask` | Modo "Ask" (perguntas rápidas) bloqueado contra edições, preservando seu workspace. |
+| `study` | Modo "Ask" sem rastros no Git (ideal para estudo livre). |
+| `ask-refactor` | Modo especializado em táticas limpas de refatoração. |
+| `ask-migration` | Modo focado em guiar atualizações e quebras de pacote (ex: Angular 15 para 18). |
+| `ask-enterprise` | Modo focado em Segurança (OWASP), Governança e Alta Performance. |
 
-  # Compactar o projeto Angular/React atual antes de subir os tokens
-  context meu-projeto-compactado.txt
+### 6. ⚠️ Ferramentas Auxiliares e Legadas
+| Comando | Descrição Completa e Casos de Uso |
+| :--- | :--- |
+| `bundle [arquivo]` | Empacota o projeto em texto puro (usando Repomix) para fallback. |
+| `sync-full` | *(Deprecated)* Forçava geração de mapas estruturais baseados em LLM. Substituído por `bootstrap` + `repo-map nativo`. |
+| `sync-module` | *(Deprecated)* Forçava geração de mapa modular. |
 
-  # Indexar um projeto no cérebro
-  brain-index /c/meus-projetos/sistema-antigo sistema-legado# aider-master
+---
+
+## 📚 Todas as Skills do Aider OS
+O Aider OS usa skills especializadas para diferentes tarefas:
+
+### Skills Obrigatórias (Sempre Carregadas no agent)
+- `anti-hallucination.md`: Mitiga alucinações da IA e proíbe imports mortos.
+- `clean-code.md`: Aplica princípios puros de Clean Code e arquitetura sólida.
+
+### Skills de Domínio Específico (Carregadas sob demanda)
+- **Análise & Investigação:** `analysis.md`, `investigation.md`, `root-cause-analysis.md`, `discover.md`
+- **Planejamento:** `architect.md`, `system-design.md`, `rules-extractor.md`
+- **Qualidade & Auditoria:** `bug-hunter.md`, `test-generator.md`, `pr-review.md`, `standardizer.md`, `security-audit.md`, `performance-audit.md`, `governance-audit.md`
+- **Refatoração:** `refactor.md`, `enterprise-refactor.md`, `architecture-review.md`
+- **Execução:** `dev-golden-path.md`, `angular-patterns.md`, `rtk-master.md`
+
+---
+
+## 🔌 Integrações
+| Integração | Propósito |
+| :--- | :--- |
+| `Bitbucket` | Carrega comentários de PRs do Bitbucket direto na sessão do Aider (`integrations/bitbucket_cli.py`). |
+
+---
+
+## 📖 Como Integrar na Prática?
+O manual prático e focado no dia a dia do Desenvolvedor foi reescrito! 
+👉 **Consulte o arquivo [guide.md](./guide.md) para ver como navegar no Aider OS cronologicamente, do momento do `git clone` até o envio de um `Pull Request` perfeito.**

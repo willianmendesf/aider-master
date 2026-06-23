@@ -1,0 +1,16 @@
+name: Compodoc
+stack: angular
+priority: 100
+confidence: 100
+
+detect:
+  - angular.json
+
+install:
+  - npm install -D @compodoc/compodoc
+
+generate:
+  - npx @compodoc/compodoc -p tsconfig.json --exportFormat json -d .ai/cache/compodoc
+
+outputs:
+  - .ai/cache/compodoc/documentation.json

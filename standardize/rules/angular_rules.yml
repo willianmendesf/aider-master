@@ -1,0 +1,13 @@
+# Regras de estruturação Angular
+rules:
+  component:
+    max_lines: 300
+    max_methods: 15
+    max_method_lines: 30
+    require_takeUntilDestroyed_with_subscribe: true
+  service:
+    max_methods: 20
+    max_lines: 400
+  general:
+    forbidden_types:
+      - any

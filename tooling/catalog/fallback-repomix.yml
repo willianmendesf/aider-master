@@ -1,0 +1,13 @@
+name: Repomix
+stack: any
+priority: 10
+confidence: 70
+
+detect:
+  - "*"
+
+generate:
+  - repomix --output .ai/cache/repomix/bundle-output.txt
+
+outputs:
+  - .ai/cache/repomix/bundle-output.txt
