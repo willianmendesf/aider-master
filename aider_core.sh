@@ -300,6 +300,7 @@ Mantenha consistência com as regras do projeto e constituição.
 PROIBIDO inventar stack, arquivos, endpoints, models ou componentes.
 Use SOMENTE feature-context.md, spec.md e arquivos reais.
 Se não houver evidência, escreva [NEEDS DISCOVERY].
+OBRIGATÓRIO: Na seção 'Arquivos a Modificar', liste TODOS os arquivos marcados como [EDITAR] em feature-context.md. Nunca omita nenhum arquivo da lista, independente da extensão ou tipo.
 Escreva o plano técnico no arquivo: $PLAN_FILE"
 
     agent "$modelo" "${SKILLS[@]}" \
@@ -326,6 +327,7 @@ Leia a especificação ($SPEC_FILE) e o plano técnico ($PLAN_FILE).
 Utilize OBRIGATORIAMENTE o template em $AIDER_GLOBAL_DIR/templates/sdd/tasks-template.md.
 Crie um checklist sequencial rigoroso que implemente o plano técnico, passo a passo, usando marcações de [ ] e incluindo as dependências necessárias.
 Tudo que não estiver evidenciado no feature-context.md deve ser marcado como [NEEDS DISCOVERY] nas tarefas.
+OBRIGATÓRIO: Crie tarefas explícitas para CADA arquivo listado como [EDITAR] em feature-context.md. Cada arquivo deve ter sua própria tarefa. Nunca agrupe arquivos distintos em uma única tarefa.
 Escreva as tarefas no arquivo: $TASKS_FILE"
 
     agent "$modelo" "${SKILLS[@]}" \
