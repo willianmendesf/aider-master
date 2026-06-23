@@ -102,13 +102,26 @@ agent() {
     echo "🤖 Iniciado com modelo: $MODELO"
 
     # --- INJEÇÃO DE REGRAS DE PROJETO ---
-    # Injeta a Constituição e Regras se existirem
-    [ -f ".ai/rules/constitution.md" ] && EXTRA_FLAGS+=(--read ".ai/rules/constitution.md")
-    [ -f ".ai/rules/project-rules.md" ] && EXTRA_FLAGS+=(--read ".ai/rules/project-rules.md")
-    [ -f ".ai/rules/architecture.md" ] && EXTRA_FLAGS+=(--read ".ai/rules/architecture.md")
-    [ -f ".ai/rules/coding.md" ] && EXTRA_FLAGS+=(--read ".ai/rules/coding.md")
+    # Lê regras SOMENTE do CWD atual. Se não encontrar, emite alerta.
+    local rules_found=0
+    for rule_file in "constitution.md" "project-rules.md" "architecture.md" "coding.md"; do
+        if [ -f ".ai/rules/$rule_file" ]; then
+            EXTRA_FLAGS+=(--read ".ai/rules/$rule_file")
+            rules_found=1
+        fi
+    done
+
     # Para retrocompatibilidade com legado
-    [ -f "./.project-rules.md" ] && EXTRA_FLAGS+=(--read "./.project-rules.md")
+    if [ -f "./.project-rules.md" ]; then
+        EXTRA_FLAGS+=(--read "./.project-rules.md")
+        rules_found=1
+    fi
+
+    if [ "$rules_found" -eq 0 ]; then
+        echo "⚠️  AVISO: Nenhuma regra de projeto encontrada em .ai/rules/."
+        echo "   Execute 'draft-rules' para extrair as convenções do seu projeto."
+        echo "   O agente continuará, mas sem conhecimento organizacional do projeto."
+    fi
     # ----------------------------------------------
 
     mkdir -p .aider
